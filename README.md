@@ -120,6 +120,44 @@ python pwb.py nom_du_script.py
 
 ---
 
+## Développeurs 
+
+<!-- ALL-DEVS-LIST:START -->
+<table>
+  <tr>
+    <td align="center">
+      <a href="https://github.com/CelianVD">
+        <img src="https://github.com/CelianVD.png" width="100px;" alt="Célian"/>
+        <br />
+        <sub><b>Célian >Cb></sub>
+      </a>
+      <br />
+      <sub>🛠️ Développeur de BotCelian pour Vikidia</sub>
+      <br />
+      <sub>📘 Contributeur Wikis (Vikidia)</sub>
+      <br />
+    </td>
+  </tr>
+</table>
+
+<table>
+  <tr>
+    <td align="center">
+      <a href="https://github.com/janusdevikidia-37">
+        <img src="https://github.com/janusdevikidia.png" width="100px;" alt="Janus"/>
+        <br />
+        <sub><b>Janus</b></sub>
+      </a>
+      <br />
+      <sub>🛠️ Développeur de bots Pywikibot</sub>
+      <br />
+      <sub>📘 Contributeur Wikis (Vikidia)</sub>
+      <br />
+      <sub> Développeur & Designer Flask </sub>
+    </td>
+  </tr>
+</table>
+
 ## 🤝 Contributeurs
 
 Les contributions sont les bienvenues ! N'hésitez pas à ouvrir une issue ou une pull request.
