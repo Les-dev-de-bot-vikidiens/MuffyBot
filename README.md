@@ -1,78 +1,151 @@
-**🤖 MuffyBot — Scripts Pywikibot pour Vikidia & enVD**
+# 🤖 MuffyBot
 
-MuffyBot est un ensemble de scripts Pywikibot destinés à automatiser des tâches de maintenance et d’organisation sur des wikis MediaWiki, principalement Vikidia (fr) et enVikidia (enVD).
+<div align="center">
 
-📌 Ce dépôt contient uniquement le code source.
-Les fichiers sensibles, les logs et les caches sont volontairement exclus du versionnage Git.
+![Python](https://img.shields.io/badge/Python-3.9+-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![Pywikibot](https://img.shields.io/badge/Pywikibot-Latest-green?style=for-the-badge&logo=wikipedia&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)
 
-**✨ Scripts disponibles**
-📘 Vikidia (fr)
+**Scripts Pywikibot pour Vikidia & enVikidia**
 
-🔁 Mass undo
-Annulation en masse de modifications non constructives ou problématiques.
+*Automatisation de tâches de maintenance et d'organisation sur wikis MediaWiki*
 
-🗂️ Suppression des catégories inexistantes
-Nettoyage automatique des catégories rouges.
+[Installation](#️-installation) • [Utilisation](#️-utilisation) • [Scripts](#-scripts-disponibles) • [Licence](#-licence)
 
-🧭 Suppression des portails sur les pages d’homonymie
-Retrait des modèles de portail sur les pages d’homonymie.
+</div>
 
-👋 Bienvenue des nouveaux utilisateurs
-Message automatique sur la page de discussion des nouveaux comptes.
+---
 
-🌍 enVikidia (enVD)
+## 📋 À propos
 
-🧪 Réinitialisation du Sandbox
-Remise à zéro régulière du bac à sable.
+**MuffyBot** est un ensemble de scripts Pywikibot destinés à automatiser des tâches de maintenance et d'organisation sur des wikis MediaWiki, principalement **Vikidia** (fr) et **enVikidia** (enVD).
 
-📅 Création automatique des pages temporelles
-• Pages de la semaine
-• Pages annuelles
-• Autres pages périodiques nécessaires au wiki
+> 📌 **Note importante** : Ce dépôt contient uniquement le code source. Les fichiers sensibles, les logs et les caches sont volontairement exclus du versionnage Git.
 
-**Installation**
+---
 
-⚙️ Prérequis
+## ✨ Scripts disponibles
 
-🐍 Python 3.9 ou plus
-🤖 Pywikibot
-👤 Un compte wiki disposant des droits nécessaires pour les actions effectuées
+### 📘 Vikidia (fr)
 
-🔐 Configuration (non incluse)
+| Script | Description |
+|--------|-------------|
+| 🔁 **Mass undo** | Annulation en masse de modifications non constructives ou problématiques |
+| 🗂️ **Suppression des catégories inexistantes** | Nettoyage automatique des catégories rouges |
+| 🧭 **Suppression des portails sur pages d'homonymie** | Retrait des modèles de portail sur les pages d'homonymie |
+| 👋 **Bienvenue des nouveaux utilisateurs** | Message automatique sur la page de discussion des nouveaux comptes |
 
-Pour des raisons de sécurité, les fichiers suivants ne sont pas versionnés :
+### 🌍 enVikidia (enVD)
 
-• user-config.py
-• user-password.py
+| Script | Description |
+|--------|-------------|
+| 🧪 **Réinitialisation du Sandbox** | Remise à zéro régulière du bac à sable |
+| 📅 **Création automatique des pages temporelles** | Génération automatique des pages de la semaine, pages annuelles et autres pages périodiques |
 
-Ils doivent être créés localement conformément à la documentation officielle de Pywikibot.
+---
 
-🔒 Aucun identifiant ni mot de passe n’est stocké dans ce dépôt.
+## ⚙️ Installation
 
-**▶️ Utilisation**
+### 📋 Prérequis
 
-Chaque script est conçu pour être lancé manuellement depuis l’environnement Pywikibot.
+- 🐍 **Python 3.9** ou supérieur
+- 🤖 **Pywikibot** (dernière version)
+- 👤 Un compte wiki disposant des droits nécessaires pour les actions effectuées
 
-🚨 Avertissement important
+### 🔐 Configuration
 
-⚠️ Les scripts sont fournis tels quels (« as-is »).
+Pour des raisons de sécurité, les fichiers suivants **ne sont pas versionnés** :
 
-• Aucune garantie n’est donnée quant à leur fonctionnement ou compatibilité
-• L’utilisateur est entièrement responsable de l’usage qu’il en fait
-• Les autorisations nécessaires sur Vikidia / enVikidia doivent impérativement être obtenues avant toute utilisation
+```
+user-config.py
+user-password.py
+```
 
-🚫 L’exécution de scripts sans droits appropriés peut enfreindre les règles du wiki concerné.
+Ces fichiers doivent être créés localement conformément à la [documentation officielle de Pywikibot](https://www.mediawiki.org/wiki/Manual:Pywikibot).
 
-**🧑‍💻 Auteur**
+> 🔒 **Sécurité** : Aucun identifiant ni mot de passe n'est stocké dans ce dépôt.
 
- Muffy
-🛠️ Développeur de bots Pywikibot & Discord
-📘 Contributeur Wikis (Vikidia)
-💡 Automatisation, maintenance et outils communautaires
+### 📦 Installation des dépendances
 
-**Contributeurs**
+```bash
+# Cloner le dépôt
+git clone https://github.com/votre-username/muffybot.git
+cd muffybot
 
+# Installer Pywikibot
+pip install pywikibot
+```
 
-**📜 Licence**
+---
 
-*MuffyBot est sous la licence MIT. Si vous utilisez ou modifiez ce projet, merci de mentionner les contributeurs originaux.*
+## ▶️ Utilisation
+
+Chaque script est conçu pour être lancé manuellement depuis l'environnement Pywikibot.
+
+```bash
+python pwb.py nom_du_script.py
+```
+
+### 🚨 Avertissement important
+
+> ⚠️ **Attention** : Les scripts sont fournis tels quels (« as-is »).
+>
+> - ❌ Aucune garantie n'est donnée quant à leur fonctionnement ou compatibilité
+> - 👤 L'utilisateur est entièrement responsable de l'usage qu'il en fait
+> - ✅ Les autorisations nécessaires sur Vikidia / enVikidia doivent **impérativement** être obtenues avant toute utilisation
+>
+> 🚫 **L'exécution de scripts sans droits appropriés peut enfreindre les règles du wiki concerné.**
+
+---
+
+## 🧑‍💻 Auteur
+
+<table>
+  <tr>
+    <td align="center">
+      <a href="https://github.com/votre-username">
+        <img src="https://github.com/votre-username.png" width="100px;" alt="Muffy"/>
+        <br />
+        <sub><b>Muffy</b></sub>
+      </a>
+      <br />
+      <sub>🛠️ Développeur de bots Pywikibot & Discord</sub>
+      <br />
+      <sub>📘 Contributeur Wikis (Vikidia)</sub>
+      <br />
+      <sub>💡 Automatisation, maintenance et outils communautaires</sub>
+    </td>
+  </tr>
+</table>
+
+---
+
+## 🤝 Contributeurs
+
+Les contributions sont les bienvenues ! N'hésitez pas à ouvrir une issue ou une pull request.
+
+<!-- ALL-CONTRIBUTORS-LIST:START -->
+<!-- Ajoutez ici les contributeurs futurs -->
+<!-- ALL-CONTRIBUTORS-LIST:END -->
+
+---
+
+## 📜 Licence
+
+Ce projet est sous licence **MIT**. 
+
+Si vous utilisez ou modifiez ce projet, merci de mentionner les contributeurs originaux.
+
+```
+MIT License - Copyright (c) 2025 Muffy
+```
+
+---
+
+<div align="center">
+
+**⭐ Si ce projet vous est utile, n'hésitez pas à lui donner une étoile !**
+
+Made with ❤️ by [Muffy](https://github.com/votre-username)
+
+</div>
