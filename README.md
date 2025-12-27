@@ -139,7 +139,6 @@ python pwb.py nom_du_script.py
     </td>
   </tr>
 </table>
-
 <table>
   <tr>
     <td align="center">
@@ -158,6 +157,7 @@ python pwb.py nom_du_script.py
   </tr>
 </table>
 <!-- ALL-DEVS-LIST:END -->
+
 ## 🤝 Contributeurs
 
 Les contributions sont les bienvenues ! N'hésitez pas à ouvrir une issue ou une pull request.
