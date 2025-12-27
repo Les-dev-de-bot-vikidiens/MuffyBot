@@ -69,7 +69,7 @@ Ces fichiers doivent être créés localement conformément à la [documentation
 
 ```bash
 # Cloner le dépôt
-git clone https://github.com/votre-username/muffybot.git
+git clone https://github.com/votre-username/muffybot.git](https://github.com/Les-dev-de-bot-vikidiens/MuffyBot.git
 cd muffybot
 
 # Installer Pywikibot
@@ -103,8 +103,8 @@ python pwb.py nom_du_script.py
 <table>
   <tr>
     <td align="center">
-      <a href="https://github.com/votre-username">
-        <img src="https://github.com/votre-username.png" width="100px;" alt="Muffy"/>
+      <a href="https://github.com/luffythebest-37">
+        <img src="https://github.com/luffythebest-37.png" width="100px;" alt="Muffy"/>
         <br />
         <sub><b>Muffy</b></sub>
       </a>
@@ -146,6 +146,6 @@ MIT License - Copyright (c) 2025 Muffy
 
 **⭐ Si ce projet vous est utile, n'hésitez pas à lui donner une étoile !**
 
-Made with ❤️ by [Muffy](https://github.com/votre-username)
+Made with ❤️ by [Muffy](https://github.com/luffythebest-37)
 
 </div>
