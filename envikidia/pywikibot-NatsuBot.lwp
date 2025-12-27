@@ -1,6 +1,0 @@
-#LWP-Cookies-2.0
-Set-Cookie3: UseCDNCache=false; path="/"; domain="en.vikidia.org"; path_spec; secure; expires="2025-12-27 00:02:06Z"; HttpOnly=None; version=0
-Set-Cookie3: UseDC=master; path="/"; domain="en.vikidia.org"; path_spec; secure; expires="2025-12-27 00:02:06Z"; HttpOnly=None; version=0
-Set-Cookie3: cpPosIndex="1%401766793716%23df958d38e33de22319947ff4aee87ec0"; path="/"; domain="en.vikidia.org"; path_spec; secure; expires="2025-12-27 00:02:06Z"; HttpOnly=None; version=0
-Set-Cookie3: vikidia_en_wk__BPsession=2a4gntb8huf9re19l3tn0s3fq5eu5ig3; path="/"; domain="en.vikidia.org"; path_spec; secure; discard; HttpOnly=None; version=0
-Set-Cookie3: vikidia_en_wk__session=7aud83ktnnvbvakefvp35n3aack7c23o; path="/"; domain="en.vikidia.org"; path_spec; secure; discard; HttpOnly=None; version=0
