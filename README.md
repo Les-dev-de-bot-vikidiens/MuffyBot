@@ -74,4 +74,5 @@ Chaque script est conçu pour être lancé manuellement depuis l’environnement
 
 
 **📜 Licence**
+
 *MuffyBot est sous la licence MIT. Si vous utilisez ou modifiez ce projet, merci de mentionner les contributeurs originaux.*
