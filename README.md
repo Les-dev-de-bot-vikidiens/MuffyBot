@@ -129,7 +129,7 @@ python pwb.py nom_du_script.py
       <a href="https://github.com/CelianVD">
         <img src="https://github.com/CelianVD.png" width="100px;" alt="Célian"/>
         <br />
-        <sub><b>Célian >Cb></sub>
+        <sub><b>Célian </b></sub>
       </a>
       <br />
       <sub>🛠️ Développeur de BotCelian pour Vikidia</sub>
@@ -157,7 +157,7 @@ python pwb.py nom_du_script.py
     </td>
   </tr>
 </table>
-
+<!-- ALL-DEVS-LIST:END -->
 ## 🤝 Contributeurs
 
 Les contributions sont les bienvenues ! N'hésitez pas à ouvrir une issue ou une pull request.
