@@ -1,0 +1,412 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>MuffyBot — Maintenance Vikidia</title>
+  <meta name="description" content="MuffyBot — Robot automatisé pour la maintenance de Vikidia" />
+  <style>
+    :root{
+      --max-width:1000px;
+      --card-radius:16px;
+      --gap:1.5em;
+      --text-muted: rgba(255,255,255,0.9);
+      --body-bg: #f5f7fa;
+    }
+    html,body{height:100%; margin:0; background:var(--body-bg); font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; color:#1f2937;}
+    a{color:inherit; text-decoration:none;}
+    a.external{color:inherit; text-decoration:underline;}
+    .page-wrap{background: #f5f7fa; min-height:100vh; padding:2em 1em; margin:-2em -1em;}
+    .container{max-width:var(--max-width); margin:0 auto;}
+    .card {border-radius:var(--card-radius); padding:2em; margin-bottom:2em;}
+    /* Header */
+    .hero{
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white; padding:3em 2em; border-radius:16px; margin-bottom:2em;
+      box-shadow: 0 20px 60px rgba(102,126,234,0.3); text-align:center;
+    }
+    .hero .title{font-size:3em; font-weight:800; margin-bottom:0.3em; text-shadow:2px 2px 4px rgba(0,0,0,0.3);}
+    .hero .subtitle{font-size:1.3em; opacity:.95; font-weight:300;}
+    .hero .status-callout{margin-top:1.5em; padding:1em; background: rgba(255,255,255,0.15); border-radius:8px; backdrop-filter: blur(10px);}
+    /* badges top (approximation des {{taille}}) */
+    .badges{display:flex; gap:0.8em; margin-bottom:1em; flex-wrap:wrap;}
+    .badge{
+      background:#fff; color:#1f2937; padding:.6em .9em; border-radius:8px; box-shadow:0 6px 18px rgba(0,0,0,0.06);
+      font-size:0.95em; line-height:1.2; max-width:720px;
+    }
+    /* Emergency */
+    .danger{
+      background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+      color:white; padding:2em; border-radius:16px; margin-bottom:2em;
+      box-shadow: 0 10px 40px rgba(231,76,60,0.4);
+    }
+    .danger h2{font-size:2em; font-weight:700; text-align:center; margin-bottom:1.5em;}
+    .grid-2{display:grid; grid-template-columns:repeat(2,1fr); gap:2em;}
+    .panel{
+      background: rgba(0,0,0,0.2); border-radius:12px; padding:2em; text-align:center;
+      backdrop-filter: blur(10px); border:2px solid rgba(255,255,255,0.3);
+      color:white;
+    }
+    .panel .heading{font-size:1.4em; font-weight:700; margin-bottom:1em;}
+    .panel .desc{margin-top:1.2em; font-size:0.95em; opacity:0.9;}
+    .panel img{display:block; margin:0.6em auto 0; width:120px; height:auto;}
+    /* Timeline / features */
+    .dark-card{
+      background: linear-gradient(135deg, #2d3436 0%, #1e272e 100%);
+      color:white; padding:2em; border-radius:16px; margin-bottom:2em;
+      box-shadow:0 10px 40px rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1);
+    }
+    .dark-card h3{font-size:2em; font-weight:700; margin-bottom:1.5em;}
+    .timeline{display:grid; gap:1em;}
+    .timeline-item{
+      background: linear-gradient(90deg, rgba(102,126,234,0.3) 0%, transparent 100%);
+      padding:1.2em; border-left:4px solid #667eea; border-radius:8px;
+    }
+    .timeline-item .date{font-weight:700; font-size:1.1em; margin-bottom:0.3em;}
+    .features{
+      background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+      color:white; padding:2em; border-radius:16px; margin-bottom:2em;
+      box-shadow:0 10px 40px rgba(44,83,100,0.3); border:1px solid rgba(255,255,255,0.1);
+    }
+    .features h3{font-size:2em; font-weight:700; margin-bottom:1.5em;}
+    .feature-list{display:grid; gap:1em;}
+    .feature{
+      background: rgba(102,126,234,0.2); padding:1.2em; border-radius:10px; border-left:4px solid #667eea; backdrop-filter: blur(5px);
+    }
+    .feature .title{font-weight:700; font-size:1.1em; margin-bottom:0.5em;}
+    .experimental{
+      background: linear-gradient(135deg, rgba(243,156,18,0.3), rgba(230,126,34,0.3));
+      padding:1.2em; border-radius:10px; border-left:4px solid #f39c12; backdrop-filter: blur(5px); border:1px solid rgba(243,156,18,0.5);
+    }
+    /* AWB */
+    .awb{
+      background: linear-gradient(135deg, #134e5e 0%, #71b280 100%);
+      color:white; padding:2em; border-radius:16px; margin-bottom:2em;
+      box-shadow:0 10px 40px rgba(113,178,128,0.4);
+    }
+    .awb-grid{display:grid; grid-template-columns:1fr 1fr; gap:1.5em;}
+    .awb-item{background: rgba(0,0,0,0.15); padding:1.2em; border-radius:10px; backdrop-filter: blur(5px);}
+    /* Achievements */
+    .achievements{background: linear-gradient(135deg,#f093fb 0%,#f5576c 100%); color:white; padding:2em; border-radius:16px; margin-bottom:2em; box-shadow:0 10px 40px rgba(240,147,251,0.4);}
+    .ach-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:1.5em;}
+    .ach-card{background: rgba(0,0,0,0.2); padding:1.5em; border-radius:10px; text-align:center; backdrop-filter: blur(5px);}
+    .ach-card .big{font-size:2.5em; margin-bottom:.3em;}
+    .ach-card .num{font-size:1.8em; font-weight:700;}
+    /* Roadmap */
+    .roadmap{background: linear-gradient(135deg,#667eea 0%,#764ba2 100%); color:white; padding:2em; border-radius:16px; margin-bottom:2em; box-shadow:0 10px 40px rgba(102,126,234,0.4);}
+    .roadmap-inner{background: rgba(0,0,0,0.2); padding:2em; border-radius:12px; backdrop-filter: blur(10px);}
+    .road-grid{display:grid; gap:1.2em;}
+    .road-item{background: rgba(255,255,255,0.1); padding:1.2em; border-radius:8px; border-left:4px solid #48bb78;}
+    .road-item.blue{border-left-color:#4299e1;}
+    .road-item.purple{border-left-color:#9f7aea;}
+    .bold{font-weight:700;}
+    /* Changelog */
+    .changelog{background: linear-gradient(135deg,#f093fb 0%,#f5576c 100%); color:white; padding:2em; border-radius:16px; margin-bottom:2em; box-shadow:0 10px 40px rgba(245,87,108,0.4);}
+    .changelog .inner{background: rgba(0,0,0,0.2); padding:2em; border-radius:12px; backdrop-filter: blur(10px); max-height:500px; overflow-y:auto;}
+    .ch-entry{background: rgba(255,255,255,0.1); padding:1.5em; border-radius:8px;}
+    /* Team */
+    .team{background: linear-gradient(135deg,#833ab4 0%,#fd1d1d 50%,#fcb045 100%); color:white; padding:2.5em; border-radius:16px; margin-bottom:2em; box-shadow:0 10px 40px rgba(131,58,180,0.5);}
+    .team .links{margin-bottom:1.5em; text-align:center; font-size:1.1em;}
+    .team .devs{background: rgba(0,0,0,0.25); padding:2em; border-radius:12px; margin:1.5em 0; backdrop-filter: blur(10px); border:1px solid rgba(255,255,255,0.2);}
+    .dev-list{display:grid; gap:1em;}
+    .dev{background: rgba(255,255,255,0.15); padding:1.2em; border-radius:8px; border-left:4px solid #fcb045;}
+    .dev.red{border-left-color:#fd1d1d;}
+    .dev.purple{border-left-color:#833ab4;}
+    /* footer mini */
+    .mini-footer{ text-align:center; color:#4a5568; font-size:0.95em; margin-top:3em; padding:2em; background:white; border-radius:12px; box-shadow:0 4px 6px rgba(0,0,0,0.1);}
+    .mini-footer .emoji{font-size:1.5em; margin-bottom:0.5em;}
+    /* responsive */
+    @media (max-width:800px){
+      .grid-2{grid-template-columns:1fr;}
+      .awb-grid{grid-template-columns:1fr;}
+      .hero .title{font-size:2.2em;}
+    }
+  </style>
+</head>
+<body>
+  <div class="page-wrap">
+    <div class="container">
+
+      <!-- Top badges (approx. des {{taille}}) -->
+      <div class="badges">
+        <div class="badge">MuffyBot doit ignorer une page? Ajoutez la sur <a class="external" href="https://fr.vikidia.org/wiki/Utilisateur:MuffyBot/Ignore" target="_blank">Utilisateur:MuffyBot/Ignore</a></div>
+        <div class="badge">Mes serveurs sont-ils en ligne? <a class="external" href="https://serversvps.wikicube.fr/" target="_blank">https://serversvps.wikicube.fr/ (pour le savoir, c'est ici !)</a></div>
+      </div>
+
+      <!-- Header -->
+      <div class="hero">
+        <div class="title">🤖 MuffyBot</div>
+        <div class="subtitle">Robot automatisé pour la maintenance de Vikidia</div>
+
+        <div class="status-callout">
+          <a class="external" href="https://serversvps.wikicube.fr/" target="_blank">📡 Statut des serveurs en temps réel →</a>
+        </div>
+      </div>
+
+      <!-- Arrêt d'urgence -->
+      <div class="danger">
+        <h2>⚠️ Arrêt d'urgence</h2>
+
+        <div class="grid-2">
+          <div class="panel">
+            <div class="heading">🔴 Administrateurs</div>
+
+            <!-- image link - pointe vers le fichier sur Vikidia (Special:FilePath) -->
+            <a href="https://fr.vikidia.org/wiki/Special:Blockip" target="_blank" title="Bloquer (Special:Blockip)">
+              <img src="https://fr.vikidia.org/wiki/Special:FilePath/Shutdown%20button%20red%20wikimedia.svg" alt="Shutdown red" />
+            </a>
+
+            <div class="desc">Bloquer immédiatement le robot en cas de dysfonctionnement critique</div>
+          </div>
+
+          <div class="panel">
+            <div class="heading">🟢 Tous utilisateurs</div>
+
+            <!-- image link to preloaded discussion (kept as in wiki) -->
+            <a href="https://fr.vikidia.org/w/index.php?action=edit&preload=Discussion+utilisateur%3ALuffyBot%2Fpreload&preloadtitle=STOP&section=new&title=Discussion+utilisateur%3ALuffyBot&create=STOP+m%27arr%C3%AAter+!" target="_blank" title="Signaler un problème">
+              <img src="https://fr.vikidia.org/wiki/Special:FilePath/Shutdown%20button%20green.svg" alt="Shutdown green" />
+            </a>
+
+            <div class="desc">Signaler un problème et demander l'arrêt du robot</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chronologie -->
+      <div class="dark-card">
+        <h3>📅 Chronologie</h3>
+
+        <div class="timeline">
+          <div class="timeline-item">
+            <div class="date">21 décembre 2023</div>
+            <div style="opacity:0.9;">Création du compte MuffyBot</div>
+          </div>
+
+          <div class="timeline-item">
+            <div class="date">16 février 2025</div>
+            <div style="opacity:0.9;">Obtention du statut de robot sur Vikidia 🎉</div>
+          </div>
+
+          <div class="timeline-item">
+            <div class="date">17 mai 2025</div>
+            <div style="opacity:0.9;">Création du compte NatsuBot sur Vikidia anglais 🌍</div>
+          </div>
+
+          <div class="timeline-item">
+            <div class="date">13 décembre 2025</div>
+            <div style="opacity:0.9;">Acquisition du premier hébergement dédié 🖥️</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fonctionnalités Pywikibot -->
+      <div class="features">
+        <h3>⚙️ Fonctionnalités Pywikibot</h3>
+
+        <div class="feature-list">
+          <div class="feature">
+            <div class="title">🗂️ Maintenance des catégories</div>
+            <div style="opacity:0.85;">Suppression automatique des catégories inexistantes (horaire)</div>
+          </div>
+
+          <div class="feature">
+            <div class="title">📋 Traitement des demandes</div>
+            <div style="opacity:0.85;">Automatisation des tâches répétitives et demandes aux robots</div>
+          </div>
+
+          <div class="feature">
+            <div class="title">🔗 Gestion des portails</div>
+            <div style="opacity:0.85;">Suppression sur pages d'homonymie (4h, 10h, 16h, 22h)</div>
+          </div>
+
+          <div class="feature">
+            <div class="title">↩️ Annulations en masse</div>
+            <div style="opacity:0.85;">Via Discord pour les interventions rapides</div>
+          </div>
+
+          <div class="feature">
+            <div class="title">👋 Accueil automatique</div>
+            <div style="opacity:0.85;">Bienvenue aux nouveaux utilisateurs (toutes les 30 minutes)</div>
+          </div>
+
+          <div class="experimental">
+            <div class="title">🛡️ Révocation intelligente <span style="font-size:.75em; background: rgba(255,255,255,0.2); padding:0.2em 0.6em; border-radius:4px;">EXPÉRIMENTAL</span></div>
+            <div style="opacity:0.85;">Système basé sur regex, IA et score de réputation utilisateur</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AutoWikiBrowser -->
+      <div class="awb">
+        <h3>🔧 Fonctionnalités AutoWikiBrowser</h3>
+
+        <div class="awb-grid">
+          <div class="awb-item">✓ Gestion des catégories</div>
+          <div class="awb-item">✓ Gestion des images</div>
+          <div class="awb-item">✓ Gestion des liens internes</div>
+          <div class="awb-item">✓ Gestion des liens externes</div>
+          <div class="awb-item">✓ Gestion des modèles</div>
+          <div class="awb-item">✓ Gestion des redirections</div>
+          <div class="awb-item">✓ Gestion des pages orphelines</div>
+          <div class="awb-item">✓ Correction typographique</div>
+          <div class="awb-item">✓ Correction des liens cassés</div>
+          <div class="awb-item">✓ Correction syntaxe wiki</div>
+        </div>
+      </div>
+
+      <!-- Achievements -->
+      <div class="achievements">
+        <div style="font-size:2em; font-weight:700; margin-bottom:1.5em; text-align:center;">🏆 Réalisations</div>
+
+        <div class="ach-grid">
+          <div class="ach-card"><div class="big">🎂</div><div class="num">2 ans</div><div style="opacity:.9;margin-top:.3em;">de service</div></div>
+
+          <div class="ach-card"><div class="big">⚙️</div><div class="num">10+</div><div style="opacity:.9;margin-top:.3em;">fonctionnalités actives</div></div>
+
+          <div class="ach-card"><div class="big">🌍</div><div class="num">2</div><div style="opacity:.9;margin-top:.3em;">wikis internationaux</div></div>
+
+          <div class="ach-card"><div class="big">🤖</div><div class="num">24/7</div><div style="opacity:.9;margin-top:.3em;">disponibilité</div></div>
+
+          <div class="ach-card"><div class="big">👥</div><div class="num">3</div><div style="opacity:.9;margin-top:.3em;">développeurs actifs</div></div>
+
+          <div class="ach-card"><div class="big">🧪</div><div class="num">IA</div><div style="opacity:.9;margin-top:.3em;">révocation expérimentale</div></div>
+        </div>
+      </div>
+
+      <!-- Roadmap -->
+      <div class="roadmap">
+        <div style="font-size:2em; font-weight:700; margin-bottom:1.5em; text-align:center;">🎯 Roadmap</div>
+
+        <div class="roadmap-inner">
+          <div class="road-grid">
+            <div class="road-item">
+              <div class="bold">✅ En cours</div>
+              <div style="opacity:.9;">• Amélioration du système de révocation par IA<br>• Optimisation des performances du serveur<br>• Extension des fonctionnalités Discord</div>
+            </div>
+
+            <div class="road-item blue">
+              <div class="bold">🔜 Prochainement</div>
+              <div style="opacity:.9;">• Tableau de bord web pour le monitoring<br>• Support multilingue avancé</div>
+            </div>
+
+            <div class="road-item purple">
+              <div class="bold">💭 En réflexion</div>
+              <div style="opacity:.9;">• Système de logs repensé <br>• Potentielle intégration sur d'autres versions de Vikidia<br><strong>Une V3 sortira prochainement avec toutes ces fonctionnalités !</strong></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Changelog -->
+      <div class="changelog">
+        <div style="font-size:2em; font-weight:700; margin-bottom:1.5em; text-align:center;">📖 Changelog</div>
+
+        <div class="inner">
+          <div class="ch-entry">
+            <div style="font-weight:700; font-size:1.2em; margin-bottom:.8em;">Changement d'architecture - Décembre 2025</div>
+            <div style="opacity:.9; line-height:1.6;">
+              🖥️ <strong>Infrastructure :</strong> Acquisition du premier hébergement dédié<br>
+              🔧 <strong>Amélioré :</strong> Stabilité et performances globales<br>
+              🐛 <strong>Corrigé :</strong> Optimisations diverses
+            </div>
+          </div>
+
+          <div class="ch-entry">
+            <div style="font-weight:700; font-size:1.2em; margin-bottom:.8em;">Version 2.0 - Décembre 2025</div>
+            <div style="opacity:.9; line-height:1.6;">
+              ✨ <strong>Nouveau :</strong> Système d'accueil automatique des nouveaux utilisateurs<br>
+              ✨ <strong>Nouveau :</strong> Mass undo via Discord<br>
+              🌍 <strong>EnVD uniquement :</strong> Création automatique des pages par périodes<br>
+              🧹 <strong>EnVD uniquement :</strong> Reset automatique du sandbox<br>
+              🛡️ <strong>EnVD uniquement :</strong> Détection des pages créées comme vandalisme
+            </div>
+          </div>
+
+          <div class="ch-entry">
+            <div style="font-weight:700; font-size:1.2em; margin-bottom:.8em;">Version 1.0 - Mai 2025</div>
+            <div style="opacity:.9; line-height:1.6;">
+              ✨ <strong>Nouveau :</strong> Suppression automatique des catégories inexistantes<br>
+              ✨ <strong>Nouveau :</strong> Suppression des portails sur pages d'homonymie<br>
+              ✨ <strong>Nouveau :</strong> Traitement des demandes aux robots<br>
+              ❌ <strong>Abandonné :</strong> Script d'interwiki vers Wikipédia
+            </div>
+          </div>
+
+          <div class="ch-entry">
+            <div style="font-weight:700; font-size:1.2em; margin-bottom:.8em;">Version 0.1 - Février 2025</div>
+            <div style="opacity:.9; line-height:1.6;">
+              🎉 <strong>Majeur :</strong> Obtention du statut de bot officiel sur Vikidia !<br>
+              🔧 <strong>Développement :</strong> Phase de tests et stabilisation
+            </div>
+          </div>
+
+          <div class="ch-entry">
+            <div style="font-weight:700; font-size:1.2em; margin-bottom:.8em;">Genèse - Décembre 2023</div>
+            <div style="opacity:.9; line-height:1.6;">
+              🎂 <strong>Lancement :</strong> Création initiale du compte MuffyBot<br>
+              🛠️ <strong>Développement :</strong> Mise en place de l'infrastructure de base
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Team -->
+      <div class="team">
+        <div style="font-size:2em; font-weight:700; margin-bottom:.5em; text-align:center;">👥 Équipe de développement</div>
+
+        <div class="links"> <a class="external" href="https://github.com/Les-dev-de-bot-vikidiens/MuffyBot" target="_blank">🔗 Voir le code sur GitHub</a> • <a class="external" href="https://github.com/Les-dev-de-bot-vikidiens/MuffyBot/wiki" target="_blank">📚 Documentation</a> </div>
+
+        <div class="devs">
+          <div style="font-size:1.4em; font-weight:700; margin-bottom:1em;">💼 Devenir développeur</div>
+
+          <div style="background: rgba(255,255,255,0.1); padding:1.5em; border-radius:8px; margin-top:1em;">
+            <div style="font-weight:700; margin-bottom:.8em; font-size:1.1em;">Prérequis :</div>
+            <div style="margin-left:1em; line-height:1.8;">
+              • Être dresseur d'un bot approuvé<br>
+              • Disposer du statut de bot actif<br>
+              • Avoir fait ses preuves dans la communauté
+            </div>
+
+            <div style="margin-top:1.5em; padding:1em; background: rgba(0,0,0,0.3); border-radius:6px; text-align:center;">
+              <strong>📧 Contact :</strong> luffy [at] wikicube [point] fr
+            </div>
+          </div>
+        </div>
+
+        <div style="background: rgba(0,0,0,0.25); padding:2em; border-radius:12px; backdrop-filter: blur(10px); border:1px solid rgba(255,255,255,0.2); margin-top:1.5em;">
+          <div style="font-size:1.4em; font-weight:700; margin-bottom:1em;">⭐ Développeurs actifs</div>
+
+          <div style="background: rgba(255,255,255,0.1); padding:1em; border-radius:8px; margin-bottom:1.5em; text-align:center; font-style:italic;">
+            💜 Un grand merci à mes développeurs pour leur travail exceptionnel et leur dévouement !
+          </div>
+
+          <div class="dev-list">
+            <div class="dev">
+              <div style="font-weight:700; font-size:1.1em;"><a class="external" href="https://fr.vikidia.org/wiki/Utilisateur:Muffy" target="_blank">Muffy</a></div>
+              <div style="opacity:0.9; margin-top:0.3em;">Accès complet • Serveur & repo privé</div>
+            </div>
+
+            <div class="dev red">
+              <div style="font-weight:700; font-size:1.1em;"><a class="external" href="https://fr.vikidia.org/wiki/Utilisateur:C%C3%A9lian" target="_blank">Célian</a></div>
+              <div style="opacity:0.9; margin-top:0.3em;">Écriture repo public • Scripts dev • Discord • GitHub</div>
+            </div>
+
+            <div class="dev purple">
+              <div style="font-weight:700; font-size:1.1em;"><a class="external" href="https://fr.vikidia.org/wiki/Utilisateur:Janus" target="_blank">Janus</a></div>
+              <div style="opacity:0.9; margin-top:0.3em;">Pull requests • Coordination du projet Dashboard</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer mini -->
+      <div class="mini-footer">
+        <div class="emoji">🤖</div>
+        Bot maintenu par l'équipe MuffyBot<br>
+        <a class="external" href="https://serversvps.wikicube.fr/" target="_blank">Surveillance des serveurs 24/7</a>
+      </div>
+
+    </div>
+  </div>
+</body>
+</html>
