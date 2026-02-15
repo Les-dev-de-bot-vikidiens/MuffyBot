@@ -16,6 +16,7 @@ Scripts Pywikibot pour Vikidia (fr/en) avec architecture modulaire.
 python3 run_bot.py welcome
 python3 run_bot.py vandalism-fr
 python3 run_bot.py envikidia-sandboxreset
+python3 run_bot.py daily-report
 ```
 
 ## Variables d'environnement (.env)
@@ -26,6 +27,8 @@ python3 run_bot.py envikidia-sandboxreset
 - `MISTRAL_API_KEY` (recommandé pour anti-vandalisme IA)
 - `STATUS_URL` (optionnel, pour `categinex`)
 - `ENABLE_STATUS_PING` (`1` pour activer, sinon désactivé)
+- `DAILY_REPORT_WINDOW_HOURS` (optionnel, défaut `24`)
+- `TASK_REPORTS_FILE` (optionnel, défaut `logs/task_reports.jsonl`)
 
 Important:
 - Les valeurs exemple comme `https://discord.com/api/webhooks/VOTRE_WEBHOOK_ICI` sont ignorées volontairement.

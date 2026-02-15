@@ -25,6 +25,11 @@ MAX_EMBED_TITLE = 256
 MAX_EMBED_FIELDS = 25
 MAX_FIELD_NAME = 256
 MAX_FIELD_VALUE = 1024
+MAX_REPORT_DETAIL = 1600
+MAX_REPORT_STATS_KEYS = 30
+MAX_REPORT_STAT_VALUE = 300
+TASK_REPORTS_FILE = Path(get_env("TASK_REPORTS_FILE", str(LOG_DIR / "task_reports.jsonl")) or str(LOG_DIR / "task_reports.jsonl"))
+_REPORT_LOCK = Lock()
 
 
 def _safe_int(value: str | None, default: int) -> int:
@@ -41,6 +46,49 @@ def _utc_now_iso() -> str:
 def _truncate(value: object, max_size: int) -> str:
     text = str(value or "")
     return text[:max_size]
+
+
+def _json_safe(value: object) -> object:
+    if value is None or isinstance(value, (bool, int, float)):
+        return value
+    return _truncate(value, MAX_REPORT_STAT_VALUE)
+
+
+def _normalize_stats(stats: dict[str, object] | None) -> dict[str, object]:
+    if not stats:
+        return {}
+    normalized: dict[str, object] = {}
+    for key, value in list(stats.items())[:MAX_REPORT_STATS_KEYS]:
+        normalized[_truncate(key, 120)] = _json_safe(value)
+    return normalized
+
+
+def _record_task_report_event(
+    *,
+    timestamp: str,
+    script_name: str,
+    status: str,
+    level: str,
+    duration_seconds: float | None,
+    stats: dict[str, object],
+    details: str | None,
+) -> None:
+    event = {
+        "timestamp": timestamp,
+        "script_name": script_name,
+        "status": status,
+        "level": level,
+        "duration_seconds": round(float(duration_seconds), 4) if duration_seconds is not None else None,
+        "stats": stats,
+        "details": _truncate(details, MAX_REPORT_DETAIL) if details else "",
+    }
+    try:
+        with _REPORT_LOCK:
+            TASK_REPORTS_FILE.parent.mkdir(parents=True, exist_ok=True)
+            with TASK_REPORTS_FILE.open("a", encoding="utf-8") as handle:
+                handle.write(json.dumps(event, ensure_ascii=False) + "\n")
+    except Exception as exc:
+        LOGGER.warning("Unable to record task report event: %s", exc)
 
 
 def _is_webhook_placeholder(url: str) -> bool:
@@ -389,6 +437,17 @@ def send_task_report(
 ) -> bool:
     normalized_status = (status or "INFO").upper()
     inferred_level = (level or ("ERROR" if normalized_status in {"ERROR", "FAILED"} else "INFO")).upper()
+    event_timestamp = _utc_now_iso()
+    normalized_stats = _normalize_stats(stats)
+    _record_task_report_event(
+        timestamp=event_timestamp,
+        script_name=script_name,
+        status=normalized_status,
+        level=inferred_level,
+        duration_seconds=duration_seconds,
+        stats=normalized_stats,
+        details=details,
+    )
     color_map = {
         "SUCCESS": 5763719,
         "INFO": 3447003,
@@ -401,8 +460,8 @@ def send_task_report(
     if duration_seconds is not None:
         fields.append({"name": "Duree", "value": f"{duration_seconds:.1f}s", "inline": True})
 
-    if stats:
-        for key, value in list(stats.items())[:10]:
+    if normalized_stats:
+        for key, value in list(normalized_stats.items())[:10]:
             fields.append({"name": _truncate(key, MAX_FIELD_NAME), "value": _truncate(value, MAX_FIELD_VALUE), "inline": True})
 
     embed = {
@@ -410,7 +469,7 @@ def send_task_report(
         "description": _truncate(details or "Rapport automatique", MAX_EMBED_DESCRIPTION),
         "color": color_map.get(normalized_status, 3447003),
         "fields": fields,
-        "timestamp": _utc_now_iso(),
+        "timestamp": event_timestamp,
     }
     return NOTIFIER.send(embed=embed, level=inferred_level, script_name=script_name)
 

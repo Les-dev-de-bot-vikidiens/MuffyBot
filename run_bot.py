@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import argparse
 
-from muffybot.tasks import categinex, homonym, welcome
+from muffybot.tasks import categinex, daily_report, homonym, welcome
 from muffybot.tasks import envikidia_annual_pages, envikidia_sandboxreset, envikidia_weekly_talk
 from muffybot.tasks.vandalism import main_en as vandalism_en_main
 from muffybot.tasks.vandalism import main_fr as vandalism_fr_main
@@ -15,6 +15,7 @@ TASKS = {
     "categinex": categinex.main,
     "vandalism-fr": vandalism_fr_main,
     "vandalism-en": vandalism_en_main,
+    "daily-report": daily_report.main,
     "envikidia-annual": envikidia_annual_pages.main,
     "envikidia-sandboxreset": envikidia_sandboxreset.main,
     "envikidia-weekly-talk": envikidia_weekly_talk.main,
