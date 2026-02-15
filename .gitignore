@@ -1,0 +1,41 @@
+# ===== Pywikibot configs sensibles =====
+user-config.py
+user-password.py
+*user-password*.py
+
+# ===== Cache & logs Pywikibot =====
+apicache/
+logs/
+
+# ===== Fichiers de contrôle Pywikibot =====
+throttle.ctrl
+*.lcp
+*.lwp
+pywikibot-*.lwp
+*.pid
+
+# ===== Logs spécifiques des scripts =====
+welcome.log
+weekly_talk.log
+homonym.log
+categinex.log
+*.log
+
+# ===== Fichiers de suivi =====
+pages_traitees.txt
+processed_pages.json
+metrics.json
+vandalism_db.json
+envikidia/processed_pages.json
+envikidia/vandalism_db.json
+
+# ===== Divers =====
+__pycache__/
+*.pyc
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
