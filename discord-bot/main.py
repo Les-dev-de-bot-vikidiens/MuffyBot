@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-from bot import main
+from luffybot.main import main
 
 
 if __name__ == "__main__":
