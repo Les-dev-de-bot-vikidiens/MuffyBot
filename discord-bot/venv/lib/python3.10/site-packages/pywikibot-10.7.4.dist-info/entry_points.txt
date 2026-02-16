@@ -1,0 +1,2 @@
+[console_scripts]
+pwb = pywikibot.scripts.wrapper:run

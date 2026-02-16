@@ -1,0 +1,26 @@
+{
+	"@metadata": {
+		"authors": [
+			"Meno25",
+			"OsamaK",
+			"TTMTT",
+			"Zaher kadour",
+			"Zanatos",
+			"ديفيد"
+		]
+	},
+	"pywikibot-bot-prefix": "بوت:",
+	"pywikibot-cosmetic-changes": "، تغييرات تجميلية",
+	"pywikibot-enter-category-name": "فضلا أدخل اسم التصنيف:",
+	"pywikibot-enter-file-links-processing": "الوصلات لأي صفحة ملف ينبغي أن تتم معالجتها؟",
+	"pywikibot-enter-finished-browser": "اضغط Enter عند الانتهاء في المتصفح.",
+	"pywikibot-enter-namespace-number": "الرجاء إدخال نطاق برقمه:",
+	"pywikibot-enter-new-text": "فضلا أدخل النص الجديد:",
+	"pywikibot-enter-page-processing": "الصفحة التي تنبغي معالجتها؟",
+	"pywikibot-enter-xml-filename": "الرجاء إدخال اسم ملف تفريغ XML:",
+	"pywikibot-fixes-fckeditor": "بوت: تصحيح rich-editor html",
+	"pywikibot-fixes-html": "بوت: تحويل/تصليح HTML",
+	"pywikibot-fixes-isbn": "بوت: تنسيق ISBN",
+	"pywikibot-fixes-syntax": "بوت: تصليح تهيئة الويكي",
+	"pywikibot-touch": "تحرير لمس بايثون ويكي بوت"
+}

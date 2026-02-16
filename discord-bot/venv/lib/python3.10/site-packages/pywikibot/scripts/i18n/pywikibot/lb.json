@@ -1,0 +1,21 @@
+{
+	"@metadata": {
+		"authors": [
+			"Robby",
+			"Soued031"
+		]
+	},
+	"pywikibot-bot-prefix": "Bot:",
+	"pywikibot-cosmetic-changes": "; kosmetesch Ännerungen",
+	"pywikibot-enter-category-name": "Gitt wgl. den Numm vun der Kategorie an:",
+	"pywikibot-enter-file-links-processing": "Linken op wat fir eng Biller-Säit verschaftt solle ginn?",
+	"pywikibot-enter-finished-browser": "Dréckt 'Enter' wann Dir fäerdeg sidd.",
+	"pywikibot-enter-namespace-number": "Gitt wgl. d'Nummer vum Nummraum an:",
+	"pywikibot-enter-new-text": "Gitt wgl. den neien Text an:",
+	"pywikibot-enter-page-processing": "Watfir eng Säit soll verschafft ginn?",
+	"pywikibot-enter-xml-filename": "Gitt wgl. den Numm vum XML-Dump-Fichier an:",
+	"pywikibot-fixes-fckeditor": "Bot: Verbessere vu Rich-Editor-HTML",
+	"pywikibot-fixes-html": "Bot:HTML konvertéieren/verbesseren",
+	"pywikibot-fixes-isbn": "Bot: ISBN formatéieren",
+	"pywikibot-fixes-syntax": "Bot: Verbessere vun der Wiki-Syntax"
+}

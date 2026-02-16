@@ -1,0 +1,22 @@
+{
+	"@metadata": {
+		"authors": [
+			"Minisarm",
+			"Strainu"
+		]
+	},
+	"pywikibot-bot-prefix": "Robot:",
+	"pywikibot-cosmetic-changes": "; modificări cosmetice",
+	"pywikibot-enter-category-name": "Vă rugăm să introduceți numele categoriei:",
+	"pywikibot-enter-file-links-processing": "Legăturile către care fișier ar trebui procesate?",
+	"pywikibot-enter-finished-browser": "Apăsați Enter odată ce ați terminat cu navigatorul.",
+	"pywikibot-enter-namespace-number": "Vă rugăm să introduceți un spațiu de nume după numărul său:",
+	"pywikibot-enter-new-text": "Vă rugăm să introduceți noul text:",
+	"pywikibot-enter-page-processing": "Ce pagină ar trebui procesată?",
+	"pywikibot-enter-xml-filename": "Vă rugăm să introduceți numele fișierului XML de extracție:",
+	"pywikibot-fixes-fckeditor": "Robot: Reparat codul html generat de editorul de text îmbogățit",
+	"pywikibot-fixes-html": "Robot: Convertesc/corectez HTML",
+	"pywikibot-fixes-isbn": "Robot: Formatat codul ISBN",
+	"pywikibot-fixes-syntax": "Robot: Corectez sintaxa wiki",
+	"pywikibot-touch": "Editare nulă făcută de Pywikibot"
+}

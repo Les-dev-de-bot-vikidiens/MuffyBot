@@ -1,0 +1,25 @@
+{
+	"@metadata": {
+		"authors": [
+			"Evropi",
+			"Geraki",
+			"GhotuoIncubator",
+			"Glavkos",
+			"Protnet"
+		]
+	},
+	"pywikibot-bot-prefix": "Ρομπότ:",
+	"pywikibot-cosmetic-changes": ".",
+	"pywikibot-enter-category-name": "Παρακαλούμε εισαγάγετε το όνομα της κατηγορίας:",
+	"pywikibot-enter-file-links-processing": "Συνδέσεις προς ποια σελίδα αρχείου να υποβληθούν σε επεξεργασία;",
+	"pywikibot-enter-finished-browser": "Πιέστε το πλήκτρο Enter, όταν τελειώσει στο πρόγραμμα περιήγησης.",
+	"pywikibot-enter-namespace-number": "Παρακαλούμε εισαγάγετε ονοματοχώρο μέσω του αριθμού του:",
+	"pywikibot-enter-new-text": "Παρακαλούμε πληκτρολογήστε το νέο κείμενο:",
+	"pywikibot-enter-page-processing": "Ποια σελίδα να υποβληθεί σε επεξεργασία;",
+	"pywikibot-enter-xml-filename": "Παρακαλούμε εισάγετε το όνομα του αρχείου XML:",
+	"pywikibot-fixes-fckeditor": "Ρομπότ: Επιδιόρθωση του html που προήλθε από εμπλουτισμένο επεξεργαστή",
+	"pywikibot-fixes-html": "Ρομπότ: Μετατροπή/επισκευή HTML",
+	"pywikibot-fixes-isbn": "Ρομπότ: Μορφοποίηση ISBN",
+	"pywikibot-fixes-syntax": "Ρομπότ: Επιδιόρθωση σύνταξης wiki",
+	"pywikibot-touch": "Πυβικιμποτ συνεισφορά αγγιγματος"
+}

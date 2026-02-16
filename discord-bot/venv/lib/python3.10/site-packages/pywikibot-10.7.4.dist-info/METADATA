@@ -1,0 +1,452 @@
+Metadata-Version: 2.4
+Name: pywikibot
+Version: 10.7.4
+Summary: Python MediaWiki Bot Framework
+Author-email: xqt <info@gno.de>
+Maintainer-email: The Pywikibot team <pywikibot@lists.wikimedia.org>
+License: MIT License
+Project-URL: Homepage, https://www.mediawiki.org/wiki/Manual:Pywikibot
+Project-URL: Documentation, https://doc.wikimedia.org/pywikibot/stable/
+Project-URL: Repository, https://gerrit.wikimedia.org/r/plugins/gitiles/pywikibot/core/
+Project-URL: GitHub Mirror, https://github.com/wikimedia/pywikibot
+Project-URL: Download, https://www.pywikibot.org
+Project-URL: Changelog, https://doc.wikimedia.org/pywikibot/master/changelog.html
+Project-URL: Tracker, https://phabricator.wikimedia.org/tag/pywikibot/
+Keywords: API,bot,client,framework,mediawiki,pwb,pybot,python,pywiki,pywikibase,pywikibot,pywikipedia,pywikipediabot,wiki,wikibase,wikidata,wikimedia,wikipedia
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Environment :: Console
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Natural Language :: Afrikaans
+Classifier: Natural Language :: Arabic
+Classifier: Natural Language :: Basque
+Classifier: Natural Language :: Bengali
+Classifier: Natural Language :: Bosnian
+Classifier: Natural Language :: Bulgarian
+Classifier: Natural Language :: Cantonese
+Classifier: Natural Language :: Catalan
+Classifier: Natural Language :: Chinese (Simplified)
+Classifier: Natural Language :: Chinese (Traditional)
+Classifier: Natural Language :: Croatian
+Classifier: Natural Language :: Czech
+Classifier: Natural Language :: Danish
+Classifier: Natural Language :: Dutch
+Classifier: Natural Language :: English
+Classifier: Natural Language :: Esperanto
+Classifier: Natural Language :: Finnish
+Classifier: Natural Language :: French
+Classifier: Natural Language :: Galician
+Classifier: Natural Language :: German
+Classifier: Natural Language :: Greek
+Classifier: Natural Language :: Hebrew
+Classifier: Natural Language :: Hindi
+Classifier: Natural Language :: Hungarian
+Classifier: Natural Language :: Icelandic
+Classifier: Natural Language :: Indonesian
+Classifier: Natural Language :: Irish
+Classifier: Natural Language :: Italian
+Classifier: Natural Language :: Japanese
+Classifier: Natural Language :: Javanese
+Classifier: Natural Language :: Korean
+Classifier: Natural Language :: Latin
+Classifier: Natural Language :: Latvian
+Classifier: Natural Language :: Lithuanian
+Classifier: Natural Language :: Macedonian
+Classifier: Natural Language :: Malay
+Classifier: Natural Language :: Marathi
+Classifier: Natural Language :: Nepali
+Classifier: Natural Language :: Norwegian
+Classifier: Natural Language :: Panjabi
+Classifier: Natural Language :: Persian
+Classifier: Natural Language :: Polish
+Classifier: Natural Language :: Portuguese
+Classifier: Natural Language :: Portuguese (Brazilian)
+Classifier: Natural Language :: Romanian
+Classifier: Natural Language :: Russian
+Classifier: Natural Language :: Serbian
+Classifier: Natural Language :: Slovak
+Classifier: Natural Language :: Slovenian
+Classifier: Natural Language :: Spanish
+Classifier: Natural Language :: Swedish
+Classifier: Natural Language :: Tamil
+Classifier: Natural Language :: Telugu
+Classifier: Natural Language :: Thai
+Classifier: Natural Language :: Tibetan
+Classifier: Natural Language :: Turkish
+Classifier: Natural Language :: Ukrainian
+Classifier: Natural Language :: Urdu
+Classifier: Natural Language :: Vietnamese
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3 :: Only
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Classifier: Programming Language :: Python :: 3.14
+Classifier: Programming Language :: Python :: 3.15
+Classifier: Programming Language :: Python :: Implementation :: CPython
+Classifier: Programming Language :: Python :: Implementation :: PyPy
+Classifier: Topic :: Internet :: WWW/HTTP :: Dynamic Content :: Wiki
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: Topic :: Utilities
+Requires-Python: >=3.8.0
+Description-Content-Type: text/x-rst
+License-File: LICENSE
+License-File: AUTHORS.rst
+Requires-Dist: mwparserfromhell>=0.5.2
+Requires-Dist: packaging
+Requires-Dist: requests>=2.31.0
+Provides-Extra: eventstreams
+Requires-Dist: requests-sse>=0.5.0; extra == "eventstreams"
+Provides-Extra: isbn
+Requires-Dist: python-stdnum>=1.20; extra == "isbn"
+Provides-Extra: graphviz
+Requires-Dist: pydot>=3.0.2; extra == "graphviz"
+Provides-Extra: google
+Requires-Dist: googlesearch-python>=1.3.0; extra == "google"
+Provides-Extra: memento
+Requires-Dist: memento_client==0.6.1; extra == "memento"
+Provides-Extra: wikitextparser
+Requires-Dist: wikitextparser>=0.56.3; extra == "wikitextparser"
+Provides-Extra: mysql
+Requires-Dist: PyMySQL>=1.1.1; extra == "mysql"
+Provides-Extra: tkinter
+Requires-Dist: Pillow==10.4.0; (platform_python_implementation == "PyPy" and python_version < "3.9") and extra == "tkinter"
+Requires-Dist: Pillow<11.3.0,>=11.1.0; (platform_python_implementation == "PyPy" and python_version >= "3.9" and python_version < "3.11") and extra == "tkinter"
+Requires-Dist: Pillow>=11.1.0; (platform_python_implementation == "PyPy" and python_version >= "3.11") and extra == "tkinter"
+Requires-Dist: Pillow==10.4.0; (platform_python_implementation != "PyPy" and python_version < "3.9") and extra == "tkinter"
+Requires-Dist: Pillow<11.3.0,>=11.1.0; (platform_python_implementation != "PyPy" and python_version == "3.9") and extra == "tkinter"
+Requires-Dist: Pillow>=11.1.0; (platform_python_implementation != "PyPy" and python_version >= "3.10") and extra == "tkinter"
+Provides-Extra: mwoauth
+Requires-Dist: PyJWT!=2.10.0,!=2.10.1; python_version > "3.8" and extra == "mwoauth"
+Requires-Dist: mwoauth!=0.3.1,>=0.2.4; extra == "mwoauth"
+Provides-Extra: html
+Requires-Dist: beautifulsoup4>=4.7.1; extra == "html"
+Provides-Extra: http
+Requires-Dist: fake-useragent>=2.0.3; python_version > "3.8" and extra == "http"
+Requires-Dist: fake-useragent==1.5.1; python_version < "3.9" and extra == "http"
+Provides-Extra: create-isbn-edition-py
+Requires-Dist: isbnlib; extra == "create-isbn-edition-py"
+Requires-Dist: unidecode; extra == "create-isbn-edition-py"
+Provides-Extra: weblinkchecker-py
+Requires-Dist: memento_client==0.6.1; extra == "weblinkchecker-py"
+Provides-Extra: scripts
+Requires-Dist: isbnlib; extra == "scripts"
+Requires-Dist: unidecode; extra == "scripts"
+Requires-Dist: memento_client==0.6.1; extra == "scripts"
+Dynamic: description
+Dynamic: description-content-type
+Dynamic: license-file
+Dynamic: provides-extra
+Dynamic: requires-dist
+
+.. image:: https://github.com/wikimedia/pywikibot/actions/workflows/pywikibot-ci.yml/badge.svg?branch=master
+   :alt: GitHub CI
+   :target: https://github.com/wikimedia/pywikibot/actions/workflows/pywikibot-ci.yml
+.. image:: https://codecov.io/gh/wikimedia/pywikibot/branch/master/graph/badge.svg
+   :alt: Code coverage
+   :target: https://app.codecov.io/gh/wikimedia/pywikibot
+.. image:: https://img.shields.io/pypi/pyversions/pywikibot.svg
+   :alt: Python
+   :target: https://www.python.org/downloads/
+.. image:: https://img.shields.io/github/languages/top/wikimedia/pywikibot
+   :alt: Top language
+   :target: https://www.python.org/downloads/
+.. image:: https://img.shields.io/pypi/v/pywikibot.svg
+   :alt: Pywikibot release
+   :target: https://pypi.org/project/pywikibot/
+.. image:: https://img.shields.io/pypi/wheel/pywikibot
+   :alt: wheel
+   :target: https://pypi.org/project/pywikibot/
+.. image:: https://static.pepy.tech/badge/pywikibot
+   :alt: Total downloads
+   :target: https://pepy.tech/project/pywikibot
+.. image:: https://static.pepy.tech/personalized-badge/pywikibot?period=month&units=international_system&left_color=black&right_color=blue&left_text=monthly
+   :alt: Monthly downloads
+   :target: https://pepy.tech/project/pywikibot
+.. image:: https://img.shields.io/github/last-commit/wikimedia/pywikibot
+   :alt: Last commit
+   :target: https://gerrit.wikimedia.org/r/plugins/gitiles/pywikibot/core/
+.. image:: https://snyk.io/advisor/python/pywikibot/badge.svg
+   :target: https://snyk.io/advisor/python/pywikibot
+   :alt: pywikibot
+
+
+*********
+Pywikibot
+*********
+
+The Pywikibot framework is a Python library that interfaces with the
+`MediaWiki API <https://www.mediawiki.org/wiki/API:Main_page>`_
+version 1.31 or higher.
+
+Also included are various general function scripts that can be adapted for
+different tasks.
+
+For further information about the library excluding scripts see
+the full `code documentation <https://doc.wikimedia.org/pywikibot/stable/>`_.
+
+Quick start
+===========
+
+.. code:: text
+
+    git clone https://gerrit.wikimedia.org/r/pywikibot/core.git
+    cd core
+    git submodule update --init
+    pip install -r requirements.txt
+    python pwb.py <script_name>
+
+Or to install using PyPI (excluding scripts)
+
+.. code:: text
+
+    pip install pywikibot
+    pwb <scriptname>
+
+Our `installation
+guide <https://www.mediawiki.org/wiki/Manual:Pywikibot/Installation>`_
+has more details for advanced usage.
+
+Basic Usage
+===========
+
+If you wish to write your own script it's very easy to get started:
+
+.. code:: python
+
+    import pywikibot
+    site = pywikibot.Site('en', 'wikipedia')  # The site we want to run our bot on
+    page = pywikibot.Page(site, 'Wikipedia:Sandbox')
+    page.text = page.text.replace('foo', 'bar')
+    page.save('Replacing "foo" with "bar"')  # Saves the page
+
+Wikibase Usage
+==============
+
+Wikibase is a flexible knowledge base software that drives Wikidata.
+A sample pywikibot script for getting data from Wikibase:
+
+.. code:: python
+
+    import pywikibot
+    site = pywikibot.Site('wikipedia:en')
+    repo = site.data_repository()  # the Wikibase repository for given site
+    page = repo.page_from_repository('Q91')  # create a local page for the given item
+    item = pywikibot.ItemPage(repo, 'Q91')  # a repository item
+    data = item.get()  # get all item data from repository for this item
+
+Script example
+==============
+
+Pywikibot provides bot classes to develop your own script easily:
+
+.. code:: python
+
+    import pywikibot
+    from pywikibot import pagegenerators
+    from pywikibot.bot import ExistingPageBot
+
+    class MyBot(ExistingPageBot):
+
+        update_options = {
+            'text': 'This is a test text',
+            'summary': 'Bot: a bot test edit with Pywikibot.'
+        }
+
+        def treat_page(self):
+            """Load the given page, do some changes, and save it."""
+            text = self.current_page.text
+            text += '\n' + self.opt.text
+            self.put_current(text, summary=self.opt.summary)
+
+    def main():
+        """Parse command line arguments and invoke bot."""
+        options = {}
+        gen_factory = pagegenerators.GeneratorFactory()
+        # Option parsing
+        local_args = pywikibot.handle_args(args)  # global options
+        local_args = gen_factory.handle_args(local_args)  # generators options
+        for arg in local_args:
+            opt, sep, value = arg.partition(':')
+            if opt in ('-summary', '-text'):
+                options[opt[1:]] = value
+        MyBot(generator=gen_factory.getCombinedGenerator(), **options).run()
+
+    if __name == '__main__':
+        main()
+
+
+For more documentation on Pywikibot see our `docs <https://doc.wikimedia.org/pywikibot/>`_.
+
+
+Roadmap
+=======
+
+Current Release Changes
+=======================
+
+* Fix extracting password line (T412191)
+
+
+Deprecations
+============
+
+This section lists features, methods, parameters, or attributes that are deprecated
+and scheduled for removal in future Pywikibot releases.
+
+Deprecated items may still work in the current release but are no longer recommended for use.
+Users should update their code according to the recommended alternatives.
+
+Pywikibot follows a clear deprecation policy: features are typically deprecated in one release and
+removed in in the third subsequent major release, remaining available for the two releases in between.
+
+
+Pending removal in Pywikibot 11
+-------------------------------
+
+* 10.7.0: Dysfunctional APISite.alllinks()
+  will be removed.
+  (T359427, T407708)
+* 10.6.0: Python 3.8 support is deprecated and will be dropped soon
+* 8.4.0: data.api.QueryGenerator.continuekeywill be removed in favour of
+  data.api.QueryGenerator.modules
+* 8.4.0: The *modules_only_mode* parameter in the data.api.ParamInfoclass, its
+  *paraminfo_keys* class attribute, and its ``preloaded_modules`` property will be removed
+* 8.4.0: The *dropdelay* and *releasepid* attributes of the throttle.Throttleclass will be
+  removed in favour of the *expiry* class attribute
+* 8.2.0: The tools.itertools.itergroupfunction will be removed in favour of the
+  backports.batchedfunction
+* 8.2.0: The *normalize* parameter in the pywikibot.WbTime.toTimestrand
+  pywikibot.WbTime.toWikibasemethods will be removed
+* 8.1.0: The inheritance of the exceptions.NoSiteLinkErrorexception from
+  exceptions.NoPageErrorwill be removed
+* 8.1.0: The ``exceptions.Server414Error`` exception is deprecated in favour of the
+  exceptions.Client414Errorexception
+* 8.0.0: The Timestamp.clone()method is deprecated in
+  favour of the ``Timestamp.replace()`` method
+* 8.0.0: The family.Family.maximum_GET_lengthmethod is deprecated in favour of the
+  config.maximum_GET_lengthconfiguration option (T325957)
+* 8.0.0: The ``addOnly`` parameter in the textlib.replaceLanguageLinksand
+  textlib.replaceCategoryLinksfunctions is deprecated in favour of ``add_only``
+* 8.0.0: The regex attributes ``ptimeR``, ``ptimeznR``, ``pyearR``, ``pmonthR``, and ``pdayR`` of
+  the textlib.TimeStripperclass are deprecated in favour of the ``patterns`` attribute,
+  which is a textlib.TimeStripperPatternsobject
+* 8.0.0: The ``groups`` attribute of the textlib.TimeStripperclass is deprecated in favour
+  of the textlib.TIMEGROUPSconstant
+* 8.0.0: The LoginManager.get_login_tokenmethod
+  has been replaced by ``login.ClientLoginManager.site.tokens['login']``
+* 8.0.0: The ``data.api.LoginManager()`` constructor is deprecated in favour of the
+  login.ClientLoginManagerclass
+* 8.0.0: The APISite.messages()method is
+  deprecated in favour of the userinfo['messages']
+  attribute
+* 8.0.0: The Page.editTime()method is deprecated and should be
+  replaced by the Page.latest_revision.timestampattribute
+
+
+Pending removal in Pywikibot 12
+-------------------------------
+
+* 9.6.0: BaseSite.languages()will be removed in
+  favour of BaseSite.codes
+* 9.5.0: DataSite.getPropertyType()will be removed
+  in favour of DataSite.get_property_type()
+* 9.3.0: page.BasePage.userNameand page.BasePage.isIpEditare deprecated in favour of
+  ``user`` or ``anon`` attributes of page.BasePage.latest_revisionproperty
+* 9.3.0: *botflag* parameter of Page.save(), Page.put()
+  and
+  Page.set_redirect_target()was renamed to *bot*
+* 9.2.0: All parameters of Page.templatesand
+  Page.itertemplates()must be given as keyworded arguments
+* 9.2.0: Imports of loggingfunctions from the botmodule are deprecated and will be desupported
+* 9.2.0: *total* argument in ``-logevents`` pagegenerators option is deprecated;
+  use ``-limit`` instead (T128981)
+* 9.0.0: The *content* parameter of proofreadpage.IndexPage.page_genis deprecated and will be
+  ignored (T358635)
+* 9.0.0: ``next`` parameter of userinterfaces.transliteration.Transliterator.transliteratewas
+  renamed to ``succ``
+* 9.0.0: ``userinterfaces.transliteration.transliterator`` object was renamed to Transliterator
+  
+* 9.0.0: The ``type`` parameter of site.APISite.protectedpages()
+  was renamed to ``protect_type``
+* 9.0.0: The ``all`` parameter of site.APISite.namespace()
+  was renamed to ``all_ns``
+* 9.0.0: ``filter`` parameter of date.dhwas renamed to ``filter_func``
+* 9.0.0: ``dict`` parameter of data.api.OptionSetwas renamed to ``data``
+* 9.0.0: pywikibot.version.get_toolforge_hostnameis deprecated with no replacement
+* 9.0.0: ``allrevisions`` parameter of xmlreader.XmpDumpis deprecated, use ``revisions`` instead
+  (T340804)
+* 9.0.0: ``iteritems`` method of data.api.Requestwill be removed in favour of ``items``
+* 9.0.0: ``SequenceOutputter.output()`` is deprecated in favour of the
+  tools.formatter.SequenceOutputter.outproperty
+
+
+Pending removal in Pywikibot 13
+-------------------------------
+
+* 10.6.0: The old ``(type, value, traceback)`` signature in
+  tools.collections.GeneratorWrapper.throwwill be removed in Pywikibot 13, or earlier if it
+  is dropped from a future Python release. (T340641)
+* 10.6.0: Family.isPublic()will be removed (T407049)
+* 10.6.0: Family.interwiki_replacementsis deprecated;
+  use Family.code_aliasesinstead.
+* Keyword argument for *char* parameter of Transliterator.transliterate
+  and
+  positional arguments for *prev* and *succ* parameters are deprecated.
+* 10.6.0: Positional arguments of daemonize()are deprecated and must
+  be given as keyword arguments.
+* 10.5.0: Accessing the fallback '*' keys in 'languages', 'namespaces', 'namespacealiases', and
+  'skins' properties of APISite.siteinfoare
+  deprecated and will be removed.
+* 10.5.0: The methods APISite.protection_types()
+  and APISite.protection_levels()
+  are deprecated.
+  APISite.restrictionsshould be used instead.
+* 10.4.0: Require all parameters of Site.allpages()
+  except *start* to be keyword arguments.
+* 10.4.0: Positional arguments of pywikibot.Coordinateare deprecated and must be given as
+  keyword arguments.
+* 10.3.0: throttle.Throttle.getDelayand throttle.Throttle.setDelayswere renamed to
+  get_delay()and set_delays()
+  ; the old methods will be removed (T289318)
+* 10.3.0: throttle.Throttle.next_multiplicityattribute is unused and will be removed
+  (T289318)
+* 10.3.0: *requestsize* parameter of throttle.Throttlecall is deprecated and will be
+  dropped (T289318)
+* 10.3.0: textlib.to_latin_digitswill be removed in favour of
+  textlib.to_ascii_digits, ``NON_LATIN_DIGITS`` of userinterfaces.transliteration
+  will be removed in favour of ``NON_ASCII_DIGITS`` (T398146#10958283)
+* 10.2.0: tools.threading.RLockis deprecated and moved to backports
+  module. The backports.RLock.countmethod is also deprecated. For Python 3.14+ use ``RLock``
+  from Python library ``threading`` instead. (T395182)
+* 10.1.0: *revid* and *date* parameters of Page.authorship()
+  were dropped
+* 10.0.0: *last_id* of comms.eventstreams.EventStreamswas renamed to *last_event_id*
+  (T309380)
+* 10.0.0: 'millenia' argument for *precision* parameter of pywikibot.WbTimeis deprecated;
+  'millennium' must be used instead
+* 10.0.0: *includeredirects* parameter of pagegenerators.AllpagesPageGeneratorand
+  pagegenerators.PrefixingPageGeneratoris deprecated and should be replaced by *filterredir*
+
+Release history
+===============
+
+See https://github.com/wikimedia/pywikibot/blob/stable/HISTORY.rst
+
+Contributing
+============
+
+Our code is maintained on Wikimedia's `Gerrit installation <https://gerrit.wikimedia.org/>`_,
+`learn <https://www.mediawiki.org/wiki/Developer_account>`_ how to get
+started.
+
+Code of Conduct
+===============
+
+The development of this software is covered by a
+`Code of Conduct <https://www.mediawiki.org/wiki/Special:MyLanguage/Code_of_Conduct>`_.

@@ -1,0 +1,10 @@
+{
+	"@metadata": {
+		"authors": [
+			"Xelgen",
+			"Աշոտ1997"
+		]
+	},
+	"pywikibot-cosmetic-changes": "; կոսմետիկ փոփոխություններ",
+	"pywikibot-fixes-isbn": "Ռոբոտը ուղղում է ԳՄՍՀի (ISBN) ձևաչափը"
+}
