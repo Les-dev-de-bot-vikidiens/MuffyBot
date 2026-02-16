@@ -41,3 +41,14 @@ config.py
 *.key
 *.p12
 *.pfx
+
+# ===== Discord bot runtime/sensibles =====
+discord-bot/token.txt
+discord-bot/luffybot.sqlite3
+discord-bot/run_logs/
+discord-bot/apicache/
+discord-bot/__pycache__/
+discord-bot/venv/
+discord-bot/user-config.py
+discord-bot/user-password.py
+discord-bot/throttle.ctrl
