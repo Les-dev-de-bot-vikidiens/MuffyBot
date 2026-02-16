@@ -4,7 +4,11 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import os
+import platform
+import socket
 import time
+import traceback
 from datetime import datetime, timezone
 from pathlib import Path
 from threading import Lock
@@ -12,7 +16,7 @@ from typing import Any
 
 import requests
 
-from .env import get_env, load_dotenv
+from .env import get_bool_env, get_csv_env, get_env, load_dotenv
 from .paths import LOG_DIR
 
 load_dotenv()
@@ -28,8 +32,18 @@ MAX_FIELD_VALUE = 1024
 MAX_REPORT_DETAIL = 1600
 MAX_REPORT_STATS_KEYS = 30
 MAX_REPORT_STAT_VALUE = 300
+MAX_SERVER_CONTEXT_SIZE = 7000
+MAX_ACTION_CONTEXT_DEPTH = 4
+MAX_ACTION_CONTEXT_KEYS = 80
+MAX_ACTION_CONTEXT_ITEMS = 30
+MAX_ACTION_CONTEXT_TEXT = 700
 TASK_REPORTS_FILE = Path(get_env("TASK_REPORTS_FILE", str(LOG_DIR / "task_reports.jsonl")) or str(LOG_DIR / "task_reports.jsonl"))
 _REPORT_LOCK = Lock()
+SERVER_ACTIONS_FILE = Path(get_env("SERVER_ACTIONS_FILE", str(LOG_DIR / "server_actions.jsonl")) or str(LOG_DIR / "server_actions.jsonl"))
+_SERVER_ACTION_FILE_LOCK = Lock()
+_SERVER_ACTION_SEQ_LOCK = Lock()
+_SERVER_ACTION_SEQ = 0
+_SERVER_ACTION_SESSION_ID = f"{socket.gethostname()}:{os.getpid()}:{int(time.time())}"
 
 
 def _safe_int(value: str | None, default: int) -> int:
@@ -48,6 +62,54 @@ def _truncate(value: object, max_size: int) -> str:
     return text[:max_size]
 
 
+def _critical_levels() -> set[str]:
+    return {item.upper() for item in get_csv_env("DISCORD_CRITICAL_LEVELS", ["CRITICAL", "FAILED"])}
+
+
+def _critical_user_mention() -> str | None:
+    user_id = (get_env("DISCORD_CRITICAL_USER_ID") or "").strip()
+    if user_id:
+        return f"<@{user_id}>"
+    username = (get_env("DISCORD_CRITICAL_USERNAME") or "").strip()
+    if username:
+        return f"@{username}"
+    return None
+
+
+def _prepend_critical_mention(content: str | None, level: str) -> str | None:
+    if not get_bool_env("DISCORD_MENTION_ON_CRITICAL", True):
+        return content
+    normalized = (level or "INFO").upper()
+    if normalized not in _critical_levels():
+        return content
+    mention = _critical_user_mention()
+    if not mention:
+        return content
+    text = (content or "").strip()
+    if mention in text:
+        return text
+    return mention if not text else f"{mention} {text}"
+
+
+def _runtime_snapshot(include_secrets: bool) -> dict[str, object]:
+    snapshot: dict[str, object] = {
+        "hostname": socket.gethostname(),
+        "platform": platform.platform(),
+        "python": platform.python_version(),
+        "pid": os.getpid(),
+        "cwd": str(Path.cwd()),
+        "utc": _utc_now_iso(),
+    }
+    if include_secrets:
+        sensitive_values: dict[str, str] = {}
+        for key in sorted(os.environ.keys()):
+            upper = key.upper()
+            if any(token in upper for token in ("KEY", "TOKEN", "SECRET", "WEBHOOK", "PASSWORD")):
+                sensitive_values[key] = _truncate(os.environ.get(key, ""), 400)
+        snapshot["sensitive_env"] = sensitive_values
+    return snapshot
+
+
 def _json_safe(value: object) -> object:
     if value is None or isinstance(value, (bool, int, float)):
         return value
@@ -61,6 +123,68 @@ def _normalize_stats(stats: dict[str, object] | None) -> dict[str, object]:
     for key, value in list(stats.items())[:MAX_REPORT_STATS_KEYS]:
         normalized[_truncate(key, 120)] = _json_safe(value)
     return normalized
+
+
+def _normalize_action_context(value: object, depth: int = 0) -> object:
+    if value is None or isinstance(value, (bool, int, float)):
+        return value
+    if isinstance(value, str):
+        return _truncate(value, MAX_ACTION_CONTEXT_TEXT)
+    if depth >= MAX_ACTION_CONTEXT_DEPTH:
+        return _truncate(repr(value), MAX_ACTION_CONTEXT_TEXT)
+    if isinstance(value, dict):
+        normalized: dict[str, object] = {}
+        for key, item in list(value.items())[:MAX_ACTION_CONTEXT_KEYS]:
+            normalized[_truncate(key, 140)] = _normalize_action_context(item, depth + 1)
+        return normalized
+    if isinstance(value, (list, tuple, set)):
+        return [_normalize_action_context(item, depth + 1) for item in list(value)[:MAX_ACTION_CONTEXT_ITEMS]]
+    return _truncate(repr(value), MAX_ACTION_CONTEXT_TEXT)
+
+
+def _next_server_action_sequence() -> int:
+    global _SERVER_ACTION_SEQ
+    with _SERVER_ACTION_SEQ_LOCK:
+        _SERVER_ACTION_SEQ += 1
+        return _SERVER_ACTION_SEQ
+
+
+def _rotate_file(path: Path, max_size_bytes: int, backups: int) -> None:
+    if max_size_bytes <= 0 or backups <= 0:
+        return
+    if not path.exists():
+        return
+    try:
+        if path.stat().st_size < max_size_bytes:
+            return
+    except OSError:
+        return
+
+    for index in range(backups - 1, 0, -1):
+        source = path.with_name(f"{path.name}.{index}")
+        target = path.with_name(f"{path.name}.{index + 1}")
+        if source.exists():
+            if target.exists():
+                target.unlink()
+            source.replace(target)
+
+    first_backup = path.with_name(f"{path.name}.1")
+    if first_backup.exists():
+        first_backup.unlink()
+    path.replace(first_backup)
+
+
+def _record_server_action_event(payload: dict[str, object]) -> None:
+    max_size_mb = max(_safe_int(get_env("SERVER_ACTION_LOG_MAX_MB", "25"), 25), 1)
+    backups = max(_safe_int(get_env("SERVER_ACTION_LOG_BACKUPS", "4"), 4), 1)
+    try:
+        with _SERVER_ACTION_FILE_LOCK:
+            SERVER_ACTIONS_FILE.parent.mkdir(parents=True, exist_ok=True)
+            _rotate_file(SERVER_ACTIONS_FILE, max_size_mb * 1024 * 1024, backups)
+            with SERVER_ACTIONS_FILE.open("a", encoding="utf-8") as handle:
+                handle.write(json.dumps(payload, ensure_ascii=False) + "\n")
+    except Exception as exc:
+        LOGGER.warning("Unable to record server action event: %s", exc)
 
 
 def _record_task_report_event(
@@ -215,6 +339,10 @@ class DiscordNotifier:
             get_env("DISCORD_WEBHOOK_VANDALISM") or get_env("DISCORD_WEBHOOK_VANDALISM_URL"),
             "DISCORD_WEBHOOK_VANDALISM",
         )
+        self.server_logs = _clean_webhook(
+            get_env("DISCORD_WEBHOOK_SERVER_LOGS") or get_env("DISCORD_WEBHOOK_SERVER"),
+            "DISCORD_WEBHOOK_SERVER_LOGS",
+        )
         self.request_timeout = max(_safe_int(get_env("DISCORD_TIMEOUT_SECONDS", "12"), 12), 3)
         self.max_retries = max(_safe_int(get_env("DISCORD_MAX_RETRIES", "3"), 3), 0)
         self.dedupe_window_seconds = max(_safe_int(get_env("DISCORD_DEDUP_WINDOW_SECONDS", "45"), 45), 0)
@@ -223,8 +351,10 @@ class DiscordNotifier:
         self._dedupe_cache: dict[str, float] = {}
         self._lock = Lock()
 
-    def _pick_webhook(self, level: str, script_name: str | None = None) -> str | None:
+    def _pick_webhook(self, level: str, script_name: str | None = None, channel: str | None = None) -> str | None:
         normalized = (level or "INFO").upper()
+        if (channel or "").lower() == "server":
+            return self.server_logs or self.errors or self.main or self.vandalism
         if script_name and "vandal" in script_name.lower() and self.vandalism:
             return self.vandalism
         if normalized in {"ERROR", "CRITICAL"} and self.errors:
@@ -252,7 +382,15 @@ class DiscordNotifier:
         except Exception as exc:
             LOGGER.warning("Unable to save Discord queue file: %s", exc)
 
-    def _enqueue(self, webhook: str, payload: dict[str, Any], level: str, script_name: str | None, error: str) -> None:
+    def _enqueue(
+        self,
+        webhook: str,
+        payload: dict[str, Any],
+        level: str,
+        script_name: str | None,
+        error: str,
+        channel: str | None = None,
+    ) -> None:
         with self._lock:
             queue = self._load_queue()
             queue.append(
@@ -262,6 +400,7 @@ class DiscordNotifier:
                     "payload": payload,
                     "level": level,
                     "script_name": script_name or "bot",
+                    "channel": channel or "",
                     "error": error[:500],
                 }
             )
@@ -378,10 +517,11 @@ class DiscordNotifier:
         embed: dict[str, Any] | None = None,
         level: str = "INFO",
         script_name: str | None = None,
+        channel: str | None = None,
     ) -> bool:
-        webhook = self._pick_webhook(level=level, script_name=script_name)
+        webhook = self._pick_webhook(level=level, script_name=script_name, channel=channel)
         if not webhook:
-            LOGGER.warning("Discord webhook missing for %s (%s)", script_name or "bot", level)
+            LOGGER.warning("Discord webhook missing for %s (%s, channel=%s)", script_name or "bot", level, channel or "default")
             return False
 
         payloads = self._build_payloads(content=content, embed=embed)
@@ -401,7 +541,14 @@ class DiscordNotifier:
 
             success = False
             LOGGER.warning("Discord webhook failed for %s (%s): %s", script_name or "bot", level, error)
-            self._enqueue(webhook=webhook, payload=payload, level=level, script_name=script_name, error=error)
+            self._enqueue(
+                webhook=webhook,
+                payload=payload,
+                level=level,
+                script_name=script_name,
+                error=error,
+                channel=channel,
+            )
         return success
 
 
@@ -424,7 +571,8 @@ def log_to_discord(message: str, level: str = "INFO", script_name: str | None = 
         "color": color_map.get(normalized, 3447003),
         "timestamp": _utc_now_iso(),
     }
-    NOTIFIER.send(embed=embed, level=normalized, script_name=script)
+    content = _prepend_critical_mention(None, normalized)
+    NOTIFIER.send(content=content, embed=embed, level=normalized, script_name=script)
 
 
 def send_task_report(
@@ -434,6 +582,7 @@ def send_task_report(
     stats: dict[str, object] | None = None,
     details: str | None = None,
     level: str | None = None,
+    channel: str | None = None,
 ) -> bool:
     normalized_status = (status or "INFO").upper()
     inferred_level = (level or ("ERROR" if normalized_status in {"ERROR", "FAILED"} else "INFO")).upper()
@@ -471,7 +620,28 @@ def send_task_report(
         "fields": fields,
         "timestamp": event_timestamp,
     }
-    return NOTIFIER.send(embed=embed, level=inferred_level, script_name=script_name)
+    content = _prepend_critical_mention(None, inferred_level)
+    sent = NOTIFIER.send(content=content, embed=embed, level=inferred_level, script_name=script_name, channel=channel)
+
+    if get_bool_env("DISCORD_SERVER_LOG_EVERY_REPORT", True):
+        raw = {
+            "timestamp": event_timestamp,
+            "script_name": script_name,
+            "status": normalized_status,
+            "level": inferred_level,
+            "duration_seconds": duration_seconds,
+            "stats": normalized_stats,
+            "details": _truncate(details, MAX_SERVER_CONTEXT_SIZE),
+        }
+        payload_text = _truncate(json.dumps(raw, ensure_ascii=False, indent=2), MAX_SERVER_CONTEXT_SIZE)
+        NOTIFIER.send(
+            content=f"```json\n{payload_text}\n```",
+            level=inferred_level,
+            script_name=script_name,
+            channel="server",
+        )
+
+    return sent
 
 
 def send_discord_webhook(
@@ -479,8 +649,87 @@ def send_discord_webhook(
     embed: dict[str, Any] | None = None,
     level: str = "INFO",
     script_name: str | None = None,
+    channel: str | None = None,
 ) -> bool:
-    return NOTIFIER.send(content=content, embed=embed, level=level, script_name=script_name)
+    normalized = (level or "INFO").upper()
+    final_content = _prepend_critical_mention(content, normalized)
+    return NOTIFIER.send(content=final_content, embed=embed, level=normalized, script_name=script_name, channel=channel)
+
+
+def log_server_diagnostic(
+    message: str,
+    level: str = "ERROR",
+    script_name: str | None = None,
+    context: dict[str, object] | None = None,
+    exception: BaseException | None = None,
+) -> None:
+    normalized = (level or "ERROR").upper()
+    include_secrets = get_bool_env("SERVER_LOG_INCLUDE_SECRETS", True)
+    server_context: dict[str, object] = {
+        "runtime": _runtime_snapshot(include_secrets=include_secrets),
+        "context": _normalize_stats(context or {}),
+    }
+    if exception is not None:
+        server_context["exception"] = _truncate(repr(exception), 1200)
+    trace_text = traceback.format_exc()
+    if trace_text and trace_text.strip() and trace_text.strip() != "NoneType: None":
+        server_context["traceback"] = _truncate(trace_text, 3500)
+
+    description = _truncate(message, 1000)
+    raw_diagnostics = _truncate(json.dumps(server_context, ensure_ascii=False, indent=2), MAX_SERVER_CONTEXT_SIZE)
+    diagnostic_content = f"```json\n{raw_diagnostics}\n```"
+
+    embed = {
+        "title": f"{script_name or 'server'} | {normalized} | SERVER LOG",
+        "description": description,
+        "color": 15158332 if normalized in {"ERROR", "CRITICAL", "FAILED"} else 15105570,
+        "timestamp": _utc_now_iso(),
+    }
+    send_discord_webhook(
+        content=diagnostic_content,
+        embed=embed,
+        level=normalized,
+        script_name=script_name or "server",
+        channel="server",
+    )
+
+
+def log_server_action(
+    action: str,
+    *,
+    script_name: str,
+    level: str = "INFO",
+    context: dict[str, object] | None = None,
+    include_runtime: bool = False,
+) -> None:
+    if not get_bool_env("SERVER_LOG_EVERY_ACTION", True):
+        return
+
+    normalized = (level or "INFO").upper()
+    sequence = _next_server_action_sequence()
+    payload: dict[str, object] = {
+        "timestamp": _utc_now_iso(),
+        "action": _truncate(action, 240),
+        "script_name": script_name,
+        "level": normalized,
+        "session_id": _SERVER_ACTION_SESSION_ID,
+        "sequence": sequence,
+        "context": _normalize_action_context(context or {}),
+    }
+    if include_runtime:
+        payload["runtime"] = _runtime_snapshot(include_secrets=get_bool_env("SERVER_LOG_INCLUDE_SECRETS", True))
+
+    _record_server_action_event(payload)
+    if not get_bool_env("SERVER_ACTION_LOG_TO_DISCORD", True):
+        return
+
+    text = _truncate(json.dumps(payload, ensure_ascii=False, indent=2), MAX_SERVER_CONTEXT_SIZE)
+    send_discord_webhook(
+        content=f"```json\n{text}\n```",
+        level=normalized,
+        script_name=script_name,
+        channel="server",
+    )
 
 
 def flush_logs() -> None:

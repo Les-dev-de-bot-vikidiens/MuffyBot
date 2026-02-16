@@ -35,6 +35,8 @@ __pycache__/
 .env
 .env.*
 !.env.example
+config.py
+!config.example.py
 *.pem
 *.key
 *.p12

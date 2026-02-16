@@ -12,7 +12,7 @@ from pathlib import Path
 import pywikibot
 import requests
 
-from muffybot.discord import log_to_discord, send_discord_webhook, send_task_report
+from muffybot.discord import log_server_action, log_server_diagnostic, log_to_discord, send_discord_webhook, send_task_report
 from muffybot.env import get_env, load_dotenv
 from muffybot.files import read_json, write_json
 from muffybot.paths import ENVIKIDIA_DIR, ROOT_DIR
@@ -314,12 +314,29 @@ def _revert_target_revision(
         return False, f"save_error: {exc}"
 
 
-def _append_wiki_log(site: pywikibot.Site, config: VandalismConfig, page_title: str, creator: str, reason: str, confidence: float) -> None:
+def _append_wiki_log(
+    site: pywikibot.Site,
+    config: VandalismConfig,
+    page_title: str,
+    creator: str,
+    reason: str,
+    confidence: float,
+    *,
+    change_id: str,
+    revid: int | None,
+    old_revid: int | None,
+    comment: str,
+) -> None:
     log_page = pywikibot.Page(site, config.log_page)
     now = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
     user_ns = "Utilisateur" if config.lang == "fr" else "User"
     header = "== Journaux de reversion ==" if config.lang == "fr" else "== Reversion Logs =="
-    line = f"* [{now}] [[{page_title}]] by [[{user_ns}:{creator}|{creator}]] - {reason} - confidence {confidence * 100:.1f}%\n"
+    safe_comment = (comment or "").replace("\n", " ")[:160]
+    line = (
+        f"* [{now}] [[{page_title}]] by [[{user_ns}:{creator}|{creator}]] "
+        f"| rcid={change_id} | revid={revid or 'n/a'} | oldrevid={old_revid or 'n/a'} "
+        f"| confidence={confidence * 100:.1f}% | reason={reason[:220]} | summary={safe_comment}\n"
+    )
 
     text = log_page.text if log_page.exists() else ""
     if not text:
@@ -401,6 +418,12 @@ def run(config: VandalismConfig) -> int:
     reverted_this_run = 0
 
     log_to_discord("Démarrage du scan anti-vandalisme", level="INFO", script_name=config.script_name)
+    log_server_action(
+        "run_start",
+        script_name=config.script_name,
+        include_runtime=True,
+        context={"lang": config.lang, "max_changes": config.max_changes, "processed_ids_size": len(processed_ids)},
+    )
 
     for change in site.recentchanges(total=config.max_changes, changetype="edit"):
         title = str(change.get("title") or "")
@@ -409,18 +432,35 @@ def run(config: VandalismConfig) -> int:
 
         change_id = str(change.get("rcid") or change.get("revid") or f"{title}:{change.get('timestamp')}")
 
-        if not title or not creator or change_id in processed_ids:
+        if not title:
+            log_server_action("skip_missing_title", script_name=config.script_name, context={"change_id": change_id})
+            continue
+        if not creator:
+            log_server_action("skip_missing_creator", script_name=config.script_name, context={"change_id": change_id, "title": title})
+            continue
+        if change_id in processed_ids:
+            log_server_action("skip_already_processed", script_name=config.script_name, context={"change_id": change_id, "title": title, "creator": creator})
             continue
 
         action = "skipped"
         confidence: float | None = None
 
         try:
+            log_server_action(
+                "inspect_change",
+                script_name=config.script_name,
+                context={"change_id": change_id, "title": title, "creator": creator, "comment": comment[:180]},
+            )
             page = pywikibot.Page(site, title)
 
             if page.namespace() == 2 or title.endswith((".js", ".css")):
                 _update_metrics(metrics, "skipped")
                 processed_ids.add(change_id)
+                log_server_action(
+                    "skip_user_or_code_namespace",
+                    script_name=config.script_name,
+                    context={"change_id": change_id, "title": title, "namespace": page.namespace()},
+                )
                 continue
 
             skip, skip_reason = _should_skip_change(site, creator, change, group_cache)
@@ -428,6 +468,11 @@ def run(config: VandalismConfig) -> int:
                 LOGGER.debug("Skip %s (%s)", title, skip_reason)
                 _update_metrics(metrics, "skipped")
                 processed_ids.add(change_id)
+                log_server_action(
+                    "skip_change",
+                    script_name=config.script_name,
+                    context={"change_id": change_id, "title": title, "creator": creator, "reason": skip_reason},
+                )
                 continue
 
             target_revid, old_revid = _extract_change_revision_ids(change)
@@ -435,6 +480,7 @@ def run(config: VandalismConfig) -> int:
                 LOGGER.debug("Skip %s: no target revision id", title)
                 _update_metrics(metrics, "skipped")
                 processed_ids.add(change_id)
+                log_server_action("skip_no_target_revid", script_name=config.script_name, context={"change_id": change_id, "title": title})
                 continue
 
             new_text = _get_revision_text(page, target_revid)
@@ -442,6 +488,7 @@ def run(config: VandalismConfig) -> int:
                 LOGGER.debug("Skip %s: target revision content unavailable", title)
                 _update_metrics(metrics, "skipped")
                 processed_ids.add(change_id)
+                log_server_action("skip_unavailable_target_text", script_name=config.script_name, context={"change_id": change_id, "title": title, "revid": target_revid})
                 continue
 
             old_text = _get_revision_text(page, old_revid)
@@ -453,6 +500,18 @@ def run(config: VandalismConfig) -> int:
                 matched_patterns.append("constructive_guard")
 
             reason = ", ".join(sorted(set(matched_patterns))) or "No pattern"
+            log_server_action(
+                "score_computed",
+                script_name=config.script_name,
+                context={
+                    "change_id": change_id,
+                    "title": title,
+                    "score": round(score, 4),
+                    "reason": reason[:200],
+                    "instant_threshold": config.instant_revert_threshold,
+                    "ai_threshold": config.ai_revert_threshold,
+                },
+            )
 
             if score >= config.instant_revert_threshold:
                 reverted, revert_status = _revert_target_revision(
@@ -467,8 +526,25 @@ def run(config: VandalismConfig) -> int:
                     action = "reverted"
                     confidence = score
                     reverted_this_run += 1
+                    log_server_action(
+                        "instant_revert_success",
+                        script_name=config.script_name,
+                        level="WARNING",
+                        context={
+                            "change_id": change_id,
+                            "title": title,
+                            "creator": creator,
+                            "score": round(score, 4),
+                            "reason": reason[:220],
+                        },
+                    )
                 else:
                     LOGGER.debug("Skip revert on %s: %s", title, revert_status)
+                    log_server_action(
+                        "instant_revert_skipped",
+                        script_name=config.script_name,
+                        context={"change_id": change_id, "title": title, "status": revert_status},
+                    )
             elif score >= 0.5:
                 ai_confidence, ai_reason, ai_category = _call_mistral(
                     config=config,
@@ -476,6 +552,17 @@ def run(config: VandalismConfig) -> int:
                     new_text=new_text,
                     old_text=old_text,
                     edit_summary=comment,
+                )
+                log_server_action(
+                    "ai_assessment",
+                    script_name=config.script_name,
+                    context={
+                        "change_id": change_id,
+                        "title": title,
+                        "ai_confidence": round(ai_confidence, 4),
+                        "ai_category": ai_category,
+                        "ai_reason": ai_reason[:220],
+                    },
                 )
 
                 if ai_category.upper() in {"LEGIT", "DOUBTFUL"}:
@@ -495,12 +582,48 @@ def run(config: VandalismConfig) -> int:
                         reason = ai_reason
                         confidence = ai_confidence
                         reverted_this_run += 1
+                        log_server_action(
+                            "ai_revert_success",
+                            script_name=config.script_name,
+                            level="WARNING",
+                            context={
+                                "change_id": change_id,
+                                "title": title,
+                                "creator": creator,
+                                "confidence": round(ai_confidence, 4),
+                                "reason": ai_reason[:220],
+                                "category": ai_category,
+                            },
+                        )
                     else:
                         LOGGER.debug("Skip AI revert on %s: %s", title, revert_status)
+                        log_server_action(
+                            "ai_revert_skipped",
+                            script_name=config.script_name,
+                            context={"change_id": change_id, "title": title, "status": revert_status},
+                        )
                 elif ai_confidence >= config.review_threshold:
                     reason = f"review_needed: {ai_reason}"
+                    log_server_action(
+                        "review_needed",
+                        script_name=config.script_name,
+                        level="WARNING",
+                        context={
+                            "change_id": change_id,
+                            "title": title,
+                            "ai_confidence": round(ai_confidence, 4),
+                            "category": ai_category,
+                            "reason": ai_reason[:220],
+                        },
+                    )
 
             _update_metrics(metrics, action, confidence if action == "reverted" else None)
+            if action != "reverted":
+                log_server_action(
+                    "change_finalized",
+                    script_name=config.script_name,
+                    context={"change_id": change_id, "title": title, "creator": creator, "action": action, "reason": reason[:220]},
+                )
 
             if action == "reverted":
                 db[change_id] = {
@@ -525,17 +648,59 @@ def run(config: VandalismConfig) -> int:
                     "timestamp": datetime.utcnow().isoformat(),
                 }
                 send_discord_webhook(embed=embed, level="WARNING", script_name=config.script_name)
+                log_server_action(
+                    "revert_notified_discord",
+                    script_name=config.script_name,
+                    level="WARNING",
+                    context={"change_id": change_id, "title": title, "creator": creator, "reason": reason[:220]},
+                )
 
                 try:
-                    _append_wiki_log(site, config, title, creator, reason, float(confidence or 0.0))
+                    _append_wiki_log(
+                        site,
+                        config,
+                        title,
+                        creator,
+                        reason,
+                        float(confidence or 0.0),
+                        change_id=change_id,
+                        revid=target_revid,
+                        old_revid=old_revid,
+                        comment=comment,
+                    )
+                    log_server_action(
+                        "revert_logged_on_wiki",
+                        script_name=config.script_name,
+                        level="SUCCESS",
+                        context={"change_id": change_id, "title": title, "revid": target_revid, "old_revid": old_revid},
+                    )
                 except Exception as exc:
                     LOGGER.debug("Wiki log failed: %s", exc)
+                    log_server_action(
+                        "revert_wiki_log_failed",
+                        script_name=config.script_name,
+                        level="ERROR",
+                        context={"change_id": change_id, "title": title, "error": str(exc)[:220]},
+                    )
 
             processed_ids.add(change_id)
         except Exception as exc:
             _update_metrics(metrics, "error")
             processed_ids.add(change_id)
             log_to_discord(f"Erreur sur {title}: {exc}", level="ERROR", script_name=config.script_name)
+            log_server_action(
+                "change_processing_error",
+                script_name=config.script_name,
+                level="ERROR",
+                context={"change_id": change_id, "title": title, "creator": creator, "error": str(exc)[:220]},
+            )
+            log_server_diagnostic(
+                message=f"Erreur anti-vandalisme sur {title}",
+                level="ERROR",
+                script_name=config.script_name,
+                context={"change_id": change_id, "title": title, "creator": creator, "comment": comment[:200]},
+                exception=exc,
+            )
 
     processed_data["ids"] = list(processed_ids)[-20000:]
 
@@ -554,6 +719,19 @@ def run(config: VandalismConfig) -> int:
         f"confiance moyenne: {average_confidence * 100:.1f}%"
     )
     log_to_discord(summary, level="INFO", script_name=config.script_name)
+    log_server_action(
+        "run_end",
+        script_name=config.script_name,
+        level="SUCCESS",
+        context={
+            "reverts_session": reverted_this_run,
+            "total_analyzed": int(metrics.get("total_analyzed", 0)),
+            "reverts_total": int(metrics.get("reverted", 0)),
+            "errors": int(metrics.get("errors", 0)),
+            "avg_confidence": round(average_confidence, 4),
+            "duration_seconds": round(time.monotonic() - started, 2),
+        },
+    )
     send_task_report(
         script_name=config.script_name,
         status="SUCCESS",

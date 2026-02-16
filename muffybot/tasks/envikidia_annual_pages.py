@@ -7,7 +7,7 @@ from datetime import datetime
 
 import pywikibot
 
-from muffybot.discord import log_to_discord, send_task_report
+from muffybot.discord import log_server_action, log_server_diagnostic, log_to_discord, send_task_report
 from muffybot.paths import ENVIKIDIA_DIR
 from muffybot.wiki import connect_site, prepare_runtime
 
@@ -35,25 +35,40 @@ def _create_annual_page(site: pywikibot.Site, base_page: str, header_template: s
 
 def run() -> int:
     started = time.monotonic()
+    script_name = "envikidia/main.py"
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s")
     prepare_runtime(ENVIKIDIA_DIR)
     site = connect_site(lang="en", family="vikidia")
 
     year = datetime.utcnow().year
     created = 0
+    log_server_action("run_start", script_name=script_name, include_runtime=True, context={"year": year, "jobs": len(ANNUAL_PAGES)})
 
     for base_page, header_template, category_name in ANNUAL_PAGES:
         try:
+            log_server_action("inspect_annual_page", script_name=script_name, context={"base_page": base_page, "year": year})
             if _create_annual_page(site, base_page, header_template, category_name, year):
                 created += 1
                 LOGGER.info("Created %s/%s", base_page, year)
+                log_server_action("annual_page_created", script_name=script_name, level="SUCCESS", context={"base_page": base_page, "year": year})
+            else:
+                log_server_action("annual_page_exists", script_name=script_name, context={"base_page": base_page, "year": year})
         except Exception as exc:
-            log_to_discord(f"Erreur annual page {base_page}: {exc}", level="ERROR", script_name="envikidia/main.py")
+            log_to_discord(f"Erreur annual page {base_page}: {exc}", level="ERROR", script_name=script_name)
+            log_server_action("annual_page_error", script_name=script_name, level="ERROR", context={"base_page": base_page, "year": year})
+            log_server_diagnostic(
+                message=f"Erreur annual page {base_page}",
+                level="ERROR",
+                script_name=script_name,
+                context={"base_page": base_page, "year": year},
+                exception=exc,
+            )
 
     summary = f"Annual pages check terminé, créations: {created}"
-    log_to_discord(summary, level="INFO", script_name="envikidia/main.py")
+    log_to_discord(summary, level="INFO", script_name=script_name)
+    log_server_action("run_end", script_name=script_name, level="SUCCESS", context={"created": created, "year": year, "duration_seconds": round(time.monotonic() - started, 2)})
     send_task_report(
-        script_name="envikidia/main.py",
+        script_name=script_name,
         status="SUCCESS",
         duration_seconds=time.monotonic() - started,
         details=summary,
