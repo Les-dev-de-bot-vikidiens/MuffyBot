@@ -342,6 +342,61 @@ class PublicLogSelect(discord.ui.Select):
         await respond_ephemeral(interaction, "Log en piece jointe:", file=discord.File(str(tmp), filename=tmp.name))
 
 
+class PublicUndoModal(discord.ui.Modal):
+    def __init__(self) -> None:
+        super().__init__(title="Undo utilisateur (approuves)")
+        self.username = discord.ui.InputText(
+            label="Nom utilisateur cible",
+            required=True,
+            max_length=80,
+            value="",
+        )
+        self.add_item(self.username)
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        if not is_undo_allowed_for_user(interaction.user.id):
+            await respond_ephemeral(interaction, "Action reservee aux utilisateurs approuves par l'admin.")
+            return
+
+        username = str(self.username.value or "").strip()
+        if not username or "|" in username or "\n" in username or "\r" in username:
+            await respond_ephemeral(interaction, "Nom utilisateur invalide.")
+            return
+
+        max_edits = get_setting_int("undo_max_edits_per_run", 30, min_value=1, max_value=200)
+        try:
+            result = await request_script_start(
+                script_key="undo-user",
+                requester_id=interaction.user.id,
+                requester_tag=str(interaction.user),
+                channel_id=interaction.channel_id,
+                public_request=True,
+                bypass_limits=False,
+                priority=5,
+                command_args=[username, "--max-edits", str(max_edits)],
+                extra_env={"MUFFYBOT_UNDO_REQUESTER_DISCORD_ID": str(interaction.user.id)},
+                target_label=username,
+            )
+        except Exception as exc:
+            await respond_ephemeral(interaction, f"Impossible de lancer undo-user: {exc}")
+            return
+
+        audit(
+            interaction.user.id,
+            "panel_public_undo_user",
+            username,
+            json.dumps(result, ensure_ascii=False),
+            guild_id=interaction.guild_id,
+            channel_id=interaction.channel_id,
+        )
+        if result["state"] == "started":
+            await respond_ephemeral(interaction, f"Undo lance pour `{username}`. run_id={result['run_id']}")
+        else:
+            await respond_ephemeral(interaction, f"Undo ajoute en queue pour `{username}`. queue_id={result['queue_id']}")
+        await maybe_refresh_public_panel(force=True)
+        await apply_presence()
+
+
 class PublicPanelView(discord.ui.View):
     def __init__(self) -> None:
         super().__init__(timeout=None)
@@ -445,6 +500,13 @@ class PublicPanelView(discord.ui.View):
     @discord.ui.button(label="Stats 24h", style=discord.ButtonStyle.secondary, row=4, custom_id="public_panel_stats_24h")
     async def stats_24h_btn(self, button: discord.ui.Button, interaction: discord.Interaction) -> None:
         await respond_ephemeral(interaction, embed=build_runs_summary_embed(24))
+
+    @discord.ui.button(label="Undo user (approuves)", style=discord.ButtonStyle.danger, row=4, custom_id="public_panel_undo_user")
+    async def undo_user_btn(self, button: discord.ui.Button, interaction: discord.Interaction) -> None:
+        if not is_undo_allowed_for_user(interaction.user.id):
+            await respond_ephemeral(interaction, "Action reservee aux utilisateurs approuves (contacte un admin OP).")
+            return
+        await interaction.response.send_modal(PublicUndoModal())
 
 
 class OpStartSelect(discord.ui.Select):
