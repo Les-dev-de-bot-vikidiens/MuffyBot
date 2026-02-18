@@ -353,6 +353,72 @@ class PublicPanelView(discord.ui.View):
         lines = [f"{idx}. `{item.script_key}` prio={item.priority} retry={item.retry_index}" for idx, item in enumerate(ordered[:20], 1)]
         await respond_ephemeral(interaction, "\n".join(lines))
 
+    @discord.ui.button(label="Mes Jobs", style=discord.ButtonStyle.secondary, row=4, custom_id="public_panel_my_jobs")
+    async def my_jobs_btn(self, button: discord.ui.Button, interaction: discord.Interaction) -> None:
+        uid = int(interaction.user.id)
+        running_lines: list[str] = []
+        for key, item in sorted(config.RUNNING_SCRIPTS.items(), key=lambda pair: pair[1].run_id):
+            if int(item.requester_id) != uid:
+                continue
+            elapsed = (utc_now() - item.started_at).total_seconds()
+            running_lines.append(f"- `{key}` run_id={item.run_id} pid={item.process.pid} depuis {fmt_duration(elapsed)}")
+
+        queue_lines_user: list[str] = []
+        ordered = sorted(config.RUN_QUEUE, key=lambda i: (i.priority, i.enqueued_at, i.queue_id))
+        for pos, item in enumerate(ordered, 1):
+            if int(item.requester_id) != uid:
+                continue
+            queue_lines_user.append(
+                f"- `{item.script_key}` queue_id={item.queue_id} pos={pos} prio={item.priority} retry={item.retry_index}"
+            )
+
+        text = (
+            "En cours:\n"
+            + ("\n".join(running_lines[:12]) if running_lines else "- aucun")
+            + "\n\nEn queue:\n"
+            + ("\n".join(queue_lines_user[:12]) if queue_lines_user else "- aucun")
+        )
+        await respond_ephemeral(interaction, text[:1900])
+
+    @discord.ui.button(label="Annuler mes jobs", style=discord.ButtonStyle.secondary, row=4, custom_id="public_panel_cancel_my_jobs")
+    async def cancel_my_jobs_btn(self, button: discord.ui.Button, interaction: discord.Interaction) -> None:
+        uid = int(interaction.user.id)
+        async with config.STATE_LOCK:
+            before = len(config.RUN_QUEUE)
+            kept = [item for item in config.RUN_QUEUE if int(item.requester_id) != uid]
+            removed = before - len(kept)
+            config.RUN_QUEUE[:] = kept
+
+        audit(
+            interaction.user.id,
+            "panel_public_cancel_own_queue",
+            "queue",
+            f"removed={removed}",
+            guild_id=interaction.guild_id,
+            channel_id=interaction.channel_id,
+        )
+        await respond_ephemeral(interaction, f"Jobs supprimes de la queue: {removed}")
+        await maybe_refresh_public_panel(force=True)
+        await apply_presence()
+
+    @discord.ui.button(label="Derniers echecs", style=discord.ButtonStyle.secondary, row=4, custom_id="public_panel_last_failures")
+    async def last_failures_btn(self, button: discord.ui.Button, interaction: discord.Interaction) -> None:
+        rows = last_runs(None, limit=40)
+        failures = [row for row in rows if str(row["status"]) in {"failed", "timed_out", "killed_resource", "killed"}]
+        if not failures:
+            await respond_ephemeral(interaction, "Aucun echec recent.")
+            return
+
+        lines = [
+            f"#{row['id']} `{row['script_key']}` {row['status']} rc={row['return_code']} dur={fmt_duration(row['duration_seconds'])}"
+            for row in failures[:12]
+        ]
+        await respond_ephemeral(interaction, "\n".join(lines))
+
+    @discord.ui.button(label="Stats 24h", style=discord.ButtonStyle.secondary, row=4, custom_id="public_panel_stats_24h")
+    async def stats_24h_btn(self, button: discord.ui.Button, interaction: discord.Interaction) -> None:
+        await respond_ephemeral(interaction, embed=build_runs_summary_embed(24))
+
 
 class OpStartSelect(discord.ui.Select):
     def __init__(self) -> None:
