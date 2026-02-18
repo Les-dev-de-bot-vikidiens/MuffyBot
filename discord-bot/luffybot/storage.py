@@ -112,6 +112,8 @@ def init_db() -> None:
             "last_weekly_digest_key": "",
             "last_monthly_digest_key": "",
             "supervision_verbose": "1",
+            "undo_approved_discord_ids": "",
+            "undo_max_edits_per_run": "30",
         }
         for key, value in defaults.items():
             conn.execute("INSERT OR IGNORE INTO settings(key, value) VALUES(?, ?)", (key, value))

@@ -231,6 +231,9 @@ async def enqueue_script(
     retry_index: int = 0,
     retry_of_run_id: int | None = None,
     not_before_delay_seconds: float = 0.0,
+    command_args: list[str] | None = None,
+    extra_env: dict[str, str] | None = None,
+    target_label: str = "",
 ) -> tuple[int, int]:
     if script_key not in config.SCRIPT_DEFS:
         raise ValueError(f"Script inconnu: {script_key}")
@@ -257,6 +260,9 @@ async def enqueue_script(
             retry_of_run_id=retry_of_run_id,
             enqueued_at=now,
             not_before_monotonic=now_mono + max(0.0, not_before_delay_seconds),
+            command_args=list(command_args or []),
+            extra_env=dict(extra_env or {}),
+            target_label=target_label.strip()[:120],
         )
         config.RUN_QUEUE.append(item)
 
@@ -269,7 +275,10 @@ async def enqueue_script(
         event="queue_enqueue",
         actor_id=requester_id,
         channel_id=channel_id,
-        details=f"queue_id={queue_id} script={script_key} prio={priority} retry={retry_index}",
+        details=(
+            f"queue_id={queue_id} script={script_key} prio={priority} retry={retry_index} "
+            f"target={target_label[:80]}"
+        ),
     )
     return queue_id, position
 
@@ -309,11 +318,16 @@ async def launch_script(
     priority: int = 5,
     queue_id: int = 0,
     retry_index: int = 0,
+    command_args: list[str] | None = None,
+    extra_env: dict[str, str] | None = None,
+    target_label: str = "",
 ) -> tuple[int, int]:
     if script_key not in config.SCRIPT_DEFS:
         raise ValueError(f"Script inconnu: {script_key}")
 
     script = config.SCRIPT_DEFS[script_key]
+    safe_args = list(command_args or [])
+    command = [*script.command, *safe_args]
     max_parallel = get_setting_int("max_parallel_runs", 4, min_value=1, max_value=20)
 
     async with config.STATE_LOCK:
@@ -330,7 +344,7 @@ async def launch_script(
             requester_id=requester_id,
             requester_tag=requester_tag,
             public_request=public_request,
-            command=script.command,
+            command=command,
             started_at=ts.isoformat(),
             log_path=log_path,
         )
@@ -341,8 +355,15 @@ async def launch_script(
             child_env["MUFFYBOT_DRY_RUN"] = "1" if dry_run_enabled() else "0"
             child_env["LUFFYBOT_RUN_ID"] = str(run_id)
             child_env["LUFFYBOT_SCRIPT_KEY"] = script_key
+            child_env["LUFFYBOT_TARGET_LABEL"] = target_label.strip()[:120]
+            if extra_env:
+                for key, value in extra_env.items():
+                    env_key = str(key).strip()
+                    if not env_key:
+                        continue
+                    child_env[env_key] = str(value)
             process = await asyncio.create_subprocess_exec(
-                *script.command,
+                *command,
                 cwd=str(config.PYWIKIBOT_DIR),
                 stdout=log_handle,
                 stderr=subprocess.STDOUT,
@@ -376,6 +397,8 @@ async def launch_script(
             priority=priority,
             queue_id=queue_id,
             retry_index=retry_index,
+            command_args=safe_args,
+            target_label=target_label.strip()[:120],
         )
         config.RUNNING_SCRIPTS[script_key] = running
 
@@ -386,7 +409,7 @@ async def launch_script(
         channel_id=channel_id,
         details=(
             f"run_id={run_id} queue_id={queue_id} script={script_key} pid={process.pid} "
-            f"retry={retry_index} dry_run={int(dry_run_enabled())}"
+            f"retry={retry_index} dry_run={int(dry_run_enabled())} target={target_label[:80]}"
         ),
     )
     asyncio.create_task(watch_script(running))
@@ -455,6 +478,9 @@ async def process_queue(max_launches: int = 8) -> list[tuple[config.QueuedScript
                 priority=item.priority,
                 queue_id=item.queue_id,
                 retry_index=item.retry_index,
+                command_args=item.command_args,
+                extra_env=item.extra_env,
+                target_label=item.target_label,
             )
             launched.append((item, run_id, pid))
         except Exception as exc:
@@ -498,6 +524,9 @@ async def request_script_start(
     retry_index: int = 0,
     retry_of_run_id: int | None = None,
     not_before_delay_seconds: float = 0.0,
+    command_args: list[str] | None = None,
+    extra_env: dict[str, str] | None = None,
+    target_label: str = "",
 ) -> dict[str, Any]:
     queue_id, position = await enqueue_script(
         script_key=script_key,
@@ -510,6 +539,9 @@ async def request_script_start(
         retry_index=retry_index,
         retry_of_run_id=retry_of_run_id,
         not_before_delay_seconds=not_before_delay_seconds,
+        command_args=command_args,
+        extra_env=extra_env,
+        target_label=target_label,
     )
 
     launched = await process_queue()
