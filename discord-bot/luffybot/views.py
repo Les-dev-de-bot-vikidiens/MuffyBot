@@ -1146,6 +1146,120 @@ class QueueManageModal(discord.ui.Modal):
             await process_queue()
 
 
+class UndoApprovalsModal(discord.ui.Modal):
+    def __init__(self) -> None:
+        super().__init__(title="IDs Discord approuves pour undo")
+        current = get_setting("undo_approved_discord_ids", "")
+        self.ids = discord.ui.InputText(
+            label="IDs CSV (ex: 123,456,789)",
+            required=False,
+            max_length=300,
+            value=current,
+        )
+        self.max_edits = discord.ui.InputText(
+            label="undo_max_edits_per_run (1-200)",
+            required=True,
+            max_length=3,
+            value=str(get_setting_int("undo_max_edits_per_run", 30, min_value=1, max_value=200)),
+        )
+        self.add_item(self.ids)
+        self.add_item(self.max_edits)
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        if not await ensure_owner_interaction(interaction):
+            return
+
+        ids_set = _parse_int_ids_csv(str(self.ids.value or ""))
+        max_edits_raw = str(self.max_edits.value or "").strip()
+        try:
+            max_edits = max(1, min(200, int(max_edits_raw)))
+        except Exception:
+            await respond_ephemeral(interaction, "Valeur undo_max_edits_per_run invalide.")
+            return
+
+        serialized = ",".join(str(v) for v in sorted(ids_set))
+        set_setting("undo_approved_discord_ids", serialized)
+        set_setting("undo_max_edits_per_run", str(max_edits))
+        audit(
+            interaction.user.id,
+            "panel_op_set_undo_approvals",
+            "undo_approved_discord_ids",
+            f"count={len(ids_set)} max_edits={max_edits}",
+            guild_id=interaction.guild_id,
+            channel_id=interaction.channel_id,
+        )
+        await respond_ephemeral(
+            interaction,
+            f"Undo approvals mis a jour: {len(ids_set)} id(s). undo_max_edits_per_run={max_edits}",
+        )
+        await maybe_refresh_public_panel(force=True)
+
+
+class OpUndoModal(discord.ui.Modal):
+    def __init__(self) -> None:
+        super().__init__(title="OP Undo utilisateur")
+        self.username = discord.ui.InputText(
+            label="Nom utilisateur cible",
+            required=True,
+            max_length=80,
+            value="",
+        )
+        self.max_edits = discord.ui.InputText(
+            label="Max edits (1-200)",
+            required=True,
+            max_length=3,
+            value=str(get_setting_int("undo_max_edits_per_run", 30, min_value=1, max_value=200)),
+        )
+        self.add_item(self.username)
+        self.add_item(self.max_edits)
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        if not await ensure_owner_interaction(interaction):
+            return
+
+        username = str(self.username.value or "").strip()
+        if not username or "|" in username or "\n" in username or "\r" in username:
+            await respond_ephemeral(interaction, "Nom utilisateur invalide.")
+            return
+        try:
+            max_edits = max(1, min(200, int(str(self.max_edits.value).strip())))
+        except Exception:
+            await respond_ephemeral(interaction, "Max edits invalide.")
+            return
+
+        try:
+            result = await request_script_start(
+                script_key="undo-user",
+                requester_id=interaction.user.id,
+                requester_tag=str(interaction.user),
+                channel_id=interaction.channel_id,
+                public_request=False,
+                bypass_limits=True,
+                priority=1,
+                command_args=[username, "--max-edits", str(max_edits)],
+                extra_env={"MUFFYBOT_UNDO_REQUESTER_DISCORD_ID": str(interaction.user.id)},
+                target_label=username,
+            )
+        except Exception as exc:
+            await respond_ephemeral(interaction, f"Echec undo-user: {exc}")
+            return
+
+        audit(
+            interaction.user.id,
+            "panel_op_undo_user",
+            username,
+            json.dumps(result, ensure_ascii=False),
+            guild_id=interaction.guild_id,
+            channel_id=interaction.channel_id,
+        )
+        if result["state"] == "started":
+            await respond_ephemeral(interaction, f"Undo lance pour `{username}`. run_id={result['run_id']}")
+        else:
+            await respond_ephemeral(interaction, f"Undo queue pour `{username}`. queue_id={result['queue_id']}")
+        await maybe_refresh_public_panel(force=True)
+        await apply_presence()
+
+
 class OpAdvancedSelect(discord.ui.Select):
     def __init__(self) -> None:
         options: list[discord.SelectOption] = [
@@ -1295,6 +1409,18 @@ class OpPanelView(discord.ui.View):
         out_file = config.RUN_LOG_DIR / f"server_logs_tail_{int(utc_now().timestamp())}.txt"
         out_file.write_text(payload, encoding="utf-8")
         await respond_ephemeral(interaction, "Tail server logs:", file=discord.File(str(out_file), filename=out_file.name))
+
+    @discord.ui.button(label="Undo User", style=discord.ButtonStyle.danger, row=2)
+    async def undo_user_btn(self, button: discord.ui.Button, interaction: discord.Interaction) -> None:
+        if not await ensure_owner_interaction(interaction):
+            return
+        await interaction.response.send_modal(OpUndoModal())
+
+    @discord.ui.button(label="Undo Approvals", style=discord.ButtonStyle.primary, row=2)
+    async def undo_approvals_btn(self, button: discord.ui.Button, interaction: discord.Interaction) -> None:
+        if not await ensure_owner_interaction(interaction):
+            return
+        await interaction.response.send_modal(UndoApprovalsModal())
 
     @discord.ui.button(label="Config", style=discord.ButtonStyle.secondary, row=3)
     async def config_btn(self, button: discord.ui.Button, interaction: discord.Interaction) -> None:
