@@ -94,6 +94,11 @@ Voir `CRONTAB.example`.
 
 Un auto-push est disponible via `systemd --user`, avec protections anti-erreur/secrets.
 
+Services `systemd`:
+
+- `muffybot-autopush.timer` (declenchement toutes ~20s)
+- `muffybot-autopush.service` (execution d'un cycle)
+
 Installation:
 
 ```bash
@@ -110,10 +115,11 @@ Desinstallation:
 Comportement:
 
 - verification toutes les ~20 secondes
-- commit auto uniquement des fichiers suivis par Git (`git commit -am ...`)
-- blocage si des fichiers non suivis et non ignores existent (ex: tu as cree un fichier sensible avant de l'ajouter au `.gitignore`)
-- blocage si des chemins sensibles sont modifies (`config.py`, `user-password.py`, `*.sqlite*`, `discord-bot/venv/*`, etc.)
-- blocage si un motif de secret connu apparait dans les lignes ajoutees
+- `git add` automatique: non
+- commit auto des fichiers suivis et eligibles uniquement (`git commit -m ... -- <paths>`)
+- les fichiers non suivis/non ignores sont ignores (ils ne bloquent plus le service)
+- les chemins sensibles sont ignores (`config.py`, `user-password.py`, `*.sqlite*`, `discord-bot/venv/*`, etc.)
+- si un motif de secret est detecte dans les lignes ajoutees des fichiers eligibles, le cycle est skip
 - push auto uniquement si la branche locale est en avance
 
 Logs:
