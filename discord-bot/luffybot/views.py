@@ -80,15 +80,17 @@ def build_public_panel_embed() -> discord.Embed:
     lines_running: list[str] = []
     for key, running in sorted(config.RUNNING_SCRIPTS.items(), key=lambda item: item[1].run_id):
         elapsed = (utc_now() - running.started_at).total_seconds()
+        target_suffix = f" target={running.target_label}" if running.target_label else ""
         lines_running.append(
-            f"`{key}` pid={running.process.pid} {fmt_duration(elapsed)} retry={running.retry_index}"
+            f"`{key}` pid={running.process.pid} {fmt_duration(elapsed)} retry={running.retry_index}{target_suffix}"
         )
     running_text = "\n".join(lines_running[:10]) if lines_running else "Aucun script en cours."
 
     queue_lines = []
     ordered_queue = sorted(config.RUN_QUEUE, key=lambda i: (i.priority, i.enqueued_at, i.queue_id))
     for idx, item in enumerate(ordered_queue[:8], 1):
-        queue_lines.append(f"{idx}. `{item.script_key}` prio={item.priority} retry={item.retry_index}")
+        target_suffix = f" target={item.target_label}" if item.target_label else ""
+        queue_lines.append(f"{idx}. `{item.script_key}` prio={item.priority} retry={item.retry_index}{target_suffix}")
     queue_text = "\n".join(queue_lines) if queue_lines else "Queue vide."
 
     rows = last_runs(None, limit=8)
@@ -432,7 +434,10 @@ class PublicPanelView(discord.ui.View):
             await respond_ephemeral(interaction, "Queue vide.")
             return
         ordered = sorted(config.RUN_QUEUE, key=lambda i: (i.priority, i.enqueued_at, i.queue_id))
-        lines = [f"{idx}. `{item.script_key}` prio={item.priority} retry={item.retry_index}" for idx, item in enumerate(ordered[:20], 1)]
+        lines = []
+        for idx, item in enumerate(ordered[:20], 1):
+            target_suffix = f" target={item.target_label}" if item.target_label else ""
+            lines.append(f"{idx}. `{item.script_key}` prio={item.priority} retry={item.retry_index}{target_suffix}")
         await respond_ephemeral(interaction, "\n".join(lines))
 
     @discord.ui.button(label="Mes Jobs", style=discord.ButtonStyle.secondary, row=4, custom_id="public_panel_my_jobs")
