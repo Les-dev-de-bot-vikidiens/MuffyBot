@@ -621,6 +621,9 @@ class OpServiceSelect(discord.ui.Select):
             discord.SelectOption(label="toggle dry-run", value="meta|toggle_dry_run"),
             discord.SelectOption(label="clear queue", value="meta|clear_queue"),
             discord.SelectOption(label="digest now", value="meta|digest_now"),
+            discord.SelectOption(label="undo user (modal)", value="meta|undo_user_modal"),
+            discord.SelectOption(label="undo approvals (modal)", value="meta|undo_approvals_modal"),
+            discord.SelectOption(label="restart bot service", value="meta|restart_bot_service"),
         ]
         for service in config.ALLOWED_SYSTEMD_SERVICES:
             for action in ("status", "restart", "start", "stop"):
@@ -690,6 +693,34 @@ class OpServiceSelect(discord.ui.Select):
                 await send_supervision("Digest force demande via OP panel")
                 audit(interaction.user.id, "panel_op_digest_now", "digest", "sent", guild_id=interaction.guild_id, channel_id=interaction.channel_id)
                 await respond_ephemeral(interaction, "Digest force envoye (message test supervision).")
+                return
+
+            if action == "undo_user_modal":
+                await interaction.response.send_modal(OpUndoModal())
+                return
+
+            if action == "undo_approvals_modal":
+                await interaction.response.send_modal(UndoApprovalsModal())
+                return
+
+            if action == "restart_bot_service":
+                await interaction.response.defer(ephemeral=True)
+                rc, output = await run_systemd_action("restart", "luffybot.service")
+                audit(
+                    interaction.user.id,
+                    "panel_op_restart_bot_service",
+                    "luffybot.service",
+                    f"rc={rc}",
+                    guild_id=interaction.guild_id,
+                    channel_id=interaction.channel_id,
+                )
+                summary = f"systemctl restart luffybot.service -> rc={rc}"
+                if len(output) > 1600:
+                    out_file = config.RUN_LOG_DIR / f"systemctl_luffybot_restart_{int(utc_now().timestamp())}.txt"
+                    out_file.write_text(output, encoding="utf-8")
+                    await interaction.followup.send(summary, ephemeral=True, file=discord.File(str(out_file), filename=out_file.name))
+                else:
+                    await interaction.followup.send(f"{summary}\n```\n{output[-1500:]}\n```", ephemeral=True)
                 return
 
             await respond_ephemeral(interaction, "Action meta inconnue.")
