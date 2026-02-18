@@ -976,12 +976,176 @@ class BackupManageView(discord.ui.View):
         await maybe_refresh_public_panel(force=True)
 
 
+class QueueManageModal(discord.ui.Modal):
+    def __init__(self) -> None:
+        super().__init__(title="Queue manager")
+        self.queue_id = discord.ui.InputText(
+            label="queue_id cible",
+            required=True,
+            max_length=12,
+            value="",
+        )
+        self.new_priority = discord.ui.InputText(
+            label="nouvelle priorite (1-9, vide=sans changement)",
+            required=False,
+            max_length=2,
+            value="",
+        )
+        self.remove_flag = discord.ui.InputText(
+            label="remove ? (yes/no)",
+            required=False,
+            max_length=5,
+            value="no",
+        )
+        self.add_item(self.queue_id)
+        self.add_item(self.new_priority)
+        self.add_item(self.remove_flag)
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        if not await ensure_owner_interaction(interaction):
+            return
+
+        try:
+            queue_id = int(str(self.queue_id.value).strip())
+        except Exception:
+            await respond_ephemeral(interaction, "queue_id invalide.")
+            return
+
+        prio_raw = str(self.new_priority.value or "").strip()
+        remove_raw = str(self.remove_flag.value or "").strip().lower()
+        remove = remove_raw in {"1", "true", "yes", "y", "oui"}
+
+        new_prio: int | None = None
+        if prio_raw:
+            try:
+                new_prio = max(1, min(9, int(prio_raw)))
+            except Exception:
+                await respond_ephemeral(interaction, "Priorite invalide (1-9).")
+                return
+
+        updated_script = ""
+        async with config.STATE_LOCK:
+            index = next((idx for idx, item in enumerate(config.RUN_QUEUE) if int(item.queue_id) == queue_id), None)
+            if index is None:
+                await respond_ephemeral(interaction, f"queue_id {queue_id} introuvable.")
+                return
+
+            item = config.RUN_QUEUE[index]
+            updated_script = item.script_key
+            if remove:
+                config.RUN_QUEUE.pop(index)
+            elif new_prio is not None:
+                item.priority = new_prio
+            else:
+                await respond_ephemeral(interaction, "Aucun changement demande.")
+                return
+
+        action = "remove" if remove else "reprio"
+        details = f"queue_id={queue_id} script={updated_script} action={action} prio={new_prio}"
+        audit(
+            interaction.user.id,
+            "panel_op_queue_manage",
+            updated_script,
+            details,
+            guild_id=interaction.guild_id,
+            channel_id=interaction.channel_id,
+        )
+        await respond_ephemeral(interaction, f"OK: {details}")
+        await maybe_refresh_public_panel(force=True)
+        await apply_presence()
+        if not remove:
+            await process_queue()
+
+
+class OpAdvancedSelect(discord.ui.Select):
+    def __init__(self) -> None:
+        options: list[discord.SelectOption] = [
+            discord.SelectOption(label="force process queue", value="force_process_queue"),
+            discord.SelectOption(label="trim queue duplicates", value="trim_queue_duplicates"),
+            discord.SelectOption(label="clear public cooldowns", value="clear_public_cooldowns"),
+            discord.SelectOption(label="maintenance ON", value="maintenance_on"),
+            discord.SelectOption(label="maintenance OFF", value="maintenance_off"),
+            discord.SelectOption(label="public start ON", value="public_start_on"),
+            discord.SelectOption(label="public start OFF", value="public_start_off"),
+            discord.SelectOption(label="open queue manager", value="open_queue_manager"),
+            discord.SelectOption(label="force panel refresh", value="force_panel_refresh"),
+        ]
+        super().__init__(
+            placeholder="OP Actions avancees",
+            min_values=1,
+            max_values=1,
+            options=options,
+            row=2,
+        )
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        if not await ensure_owner_interaction(interaction):
+            return
+
+        action = self.values[0]
+
+        if action == "open_queue_manager":
+            await interaction.response.send_modal(QueueManageModal())
+            return
+
+        if action == "maintenance_on":
+            set_setting("maintenance_mode", "1")
+            await respond_ephemeral(interaction, "maintenance_mode=ON")
+        elif action == "maintenance_off":
+            set_setting("maintenance_mode", "0")
+            await respond_ephemeral(interaction, "maintenance_mode=OFF")
+        elif action == "public_start_on":
+            set_setting("public_start_enabled", "1")
+            await respond_ephemeral(interaction, "public_start_enabled=ON")
+        elif action == "public_start_off":
+            set_setting("public_start_enabled", "0")
+            await respond_ephemeral(interaction, "public_start_enabled=OFF")
+        elif action == "clear_public_cooldowns":
+            count = len(config.LAST_PUBLIC_START_MONO)
+            config.LAST_PUBLIC_START_MONO.clear()
+            await respond_ephemeral(interaction, f"Cooldowns publics reinitialises ({count}).")
+        elif action == "trim_queue_duplicates":
+            async with config.STATE_LOCK:
+                seen: set[str] = set()
+                kept = []
+                dropped = 0
+                for item in sorted(config.RUN_QUEUE, key=lambda i: (i.priority, i.enqueued_at, i.queue_id)):
+                    if item.script_key in seen:
+                        dropped += 1
+                        continue
+                    seen.add(item.script_key)
+                    kept.append(item)
+                config.RUN_QUEUE[:] = kept
+            await respond_ephemeral(interaction, f"Queue dedupe: {dropped} element(s) supprime(s).")
+        elif action == "force_process_queue":
+            launched = await process_queue()
+            await respond_ephemeral(interaction, f"Queue traitee: {len(launched)} lancement(s).")
+        elif action == "force_panel_refresh":
+            await maybe_refresh_public_panel(force=True)
+            await respond_ephemeral(interaction, "Panel public rafraichi.")
+        else:
+            await respond_ephemeral(interaction, f"Action inconnue: {action}")
+            return
+
+        audit(
+            interaction.user.id,
+            "panel_op_advanced_action",
+            action,
+            "ok",
+            guild_id=interaction.guild_id,
+            channel_id=interaction.channel_id,
+        )
+        await maybe_refresh_public_panel(force=True)
+        await apply_presence()
+
+
 class OpPanelView(discord.ui.View):
     def __init__(self) -> None:
         super().__init__(timeout=900)
         self.add_item(OpStartSelect())
         self.add_item(OpStopSelect())
         self.add_item(OpServiceSelect())
+        self.add_item(OpAdvancedSelect())
 
     @discord.ui.button(label="Config", style=discord.ButtonStyle.secondary, row=3)
     async def config_btn(self, button: discord.ui.Button, interaction: discord.Interaction) -> None:
