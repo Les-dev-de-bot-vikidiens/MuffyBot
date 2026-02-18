@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import contextlib
+import datetime as dt
 import json
 import shutil
 from pathlib import Path
@@ -19,6 +20,7 @@ from .runtime import (
     export_runs_csv_file,
     is_public_channel_allowed,
     maybe_refresh_public_panel,
+    process_queue,
     request_script_start,
     respond_ephemeral,
     restore_latest_backup,
@@ -36,6 +38,7 @@ from .storage import (
     last_runs,
     search_logs,
     set_setting,
+    summarize_runs,
     init_db,
 )
 from .utils import fmt_duration, memory_used_percent, read_tail, utc_now
@@ -111,6 +114,31 @@ def build_op_panel_embed() -> discord.Embed:
         f"Retry: `{retries}` (backoff `{backoff}s`)\n"
         f"Presence: `{state}` `{mode}` text=`{text[:80]}`"
     )
+    return embed
+
+
+def build_runs_summary_embed(hours: int = 24) -> discord.Embed:
+    now = utc_now()
+    start = now - dt.timedelta(hours=max(1, min(hours, 24 * 30)))
+    stats = summarize_runs(start.isoformat(), now.isoformat())
+
+    by_status = ", ".join(f"{name}:{count}" for name, count in stats["by_status"][:8]) or "n/a"
+    top_runs = ", ".join(f"{name}:{count}" for name, count in stats["by_script"][:8]) or "n/a"
+    top_fails = ", ".join(f"{name}:{count}" for name, count in stats["by_script_failed"][:8]) or "n/a"
+
+    embed = discord.Embed(
+        title=f"Statistiques runs ({hours}h)",
+        color=0x1ABC9C,
+        timestamp=now,
+    )
+    embed.description = (
+        f"Total: `{stats['total']}` | Success: `{stats['success_count']}` | "
+        f"Echecs: `{stats['failure_count']}` | Success rate: `{stats['success_rate']:.1f}%`\n"
+        f"Duree moyenne: `{fmt_duration(stats['avg_duration'])}`"
+    )
+    embed.add_field(name="Par statut", value=by_status[:1024], inline=False)
+    embed.add_field(name="Top scripts (volume)", value=top_runs[:1024], inline=False)
+    embed.add_field(name="Top scripts (echecs)", value=top_fails[:1024], inline=False)
     return embed
 
 
