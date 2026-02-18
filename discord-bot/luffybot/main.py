@@ -9,7 +9,6 @@ from typing import TextIO
 
 from . import config
 from . import commands  # noqa: F401 - registers events/commands
-from .healthcheck import start_healthcheck_server
 from .runtime import load_token
 from .storage import init_db
 
@@ -38,21 +37,10 @@ def main() -> None:
     configure_logging()
     init_db()
     lock_handle = acquire_instance_lock()
-    healthcheck = start_healthcheck_server(
-        host=config.HEALTHCHECK_HOST,
-        port=config.HEALTHCHECK_PORT,
-        bot=config.bot,
-    )
-    config.LOGGER.info(
-        "Healthcheck HTTP actif sur http://%s:%s/healthz",
-        config.HEALTHCHECK_HOST,
-        config.HEALTHCHECK_PORT,
-    )
     token = load_token()
     try:
         config.bot.run(token)
     finally:
-        healthcheck.stop()
         try:
             fcntl.flock(lock_handle.fileno(), fcntl.LOCK_UN)
         finally:
