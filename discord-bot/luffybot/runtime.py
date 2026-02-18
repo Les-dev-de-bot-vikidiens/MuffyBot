@@ -662,6 +662,8 @@ async def maybe_schedule_retry(running: config.RunningScript, status: str, note:
             retry_index=running.retry_index + 1,
             retry_of_run_id=running.run_id,
             not_before_delay_seconds=delay,
+            command_args=running.command_args,
+            target_label=running.target_label,
         )
     except Exception as exc:
         await critical_alert(
