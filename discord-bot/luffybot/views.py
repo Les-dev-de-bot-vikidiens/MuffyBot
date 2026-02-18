@@ -1147,6 +1147,66 @@ class OpPanelView(discord.ui.View):
         self.add_item(OpServiceSelect())
         self.add_item(OpAdvancedSelect())
 
+    @discord.ui.button(label="Metrics 24h", style=discord.ButtonStyle.secondary, row=2)
+    async def metrics_btn(self, button: discord.ui.Button, interaction: discord.Interaction) -> None:
+        if not await ensure_owner_interaction(interaction):
+            return
+        audit(
+            interaction.user.id,
+            "panel_op_metrics_24h",
+            "runs",
+            "hours=24",
+            guild_id=interaction.guild_id,
+            channel_id=interaction.channel_id,
+        )
+        await respond_ephemeral(interaction, embed=build_runs_summary_embed(24))
+
+    @discord.ui.button(label="Live State", style=discord.ButtonStyle.secondary, row=2)
+    async def live_state_btn(self, button: discord.ui.Button, interaction: discord.Interaction) -> None:
+        if not await ensure_owner_interaction(interaction):
+            return
+
+        running = sorted(config.RUNNING_SCRIPTS.values(), key=lambda r: r.run_id)
+        queue = sorted(config.RUN_QUEUE, key=lambda i: (i.priority, i.enqueued_at, i.queue_id))
+        lines = [
+            f"running={len(running)} queue={len(queue)}",
+            "RUNNING:",
+        ]
+        if running:
+            lines.extend(
+                f"- run_id={item.run_id} `{item.script_key}` pid={item.process.pid} retry={item.retry_index} prio={item.priority}"
+                for item in running[:12]
+            )
+        else:
+            lines.append("- none")
+        lines.append("QUEUE:")
+        if queue:
+            lines.extend(
+                f"- queue_id={item.queue_id} `{item.script_key}` prio={item.priority} retry={item.retry_index} by={item.requester_id}"
+                for item in queue[:20]
+            )
+        else:
+            lines.append("- none")
+        await respond_ephemeral(interaction, "\n".join(lines)[:1900])
+
+    @discord.ui.button(label="Server Logs", style=discord.ButtonStyle.secondary, row=2)
+    async def server_logs_btn(self, button: discord.ui.Button, interaction: discord.Interaction) -> None:
+        if not await ensure_owner_interaction(interaction):
+            return
+        tail = read_tail(config.SERVER_ACTIONS_LOG, lines=120, max_chars=5500)
+        if not tail.strip():
+            await respond_ephemeral(interaction, "Aucun server log disponible.")
+            return
+
+        payload = tail.strip()
+        if len(payload) <= 1800:
+            await respond_ephemeral(interaction, f"```\n{payload}\n```")
+            return
+
+        out_file = config.RUN_LOG_DIR / f"server_logs_tail_{int(utc_now().timestamp())}.txt"
+        out_file.write_text(payload, encoding="utf-8")
+        await respond_ephemeral(interaction, "Tail server logs:", file=discord.File(str(out_file), filename=out_file.name))
+
     @discord.ui.button(label="Config", style=discord.ButtonStyle.secondary, row=3)
     async def config_btn(self, button: discord.ui.Button, interaction: discord.Interaction) -> None:
         if not await ensure_owner_interaction(interaction):
