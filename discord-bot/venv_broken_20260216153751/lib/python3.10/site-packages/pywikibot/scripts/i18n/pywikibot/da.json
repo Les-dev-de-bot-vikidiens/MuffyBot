@@ -1,0 +1,26 @@
+{
+	"@metadata": {
+		"authors": [
+			"Christian List",
+			"Joedalton",
+			"Kaare",
+			"MGA73",
+			"Peter Alberti",
+			"Steenth"
+		]
+	},
+	"pywikibot-bot-prefix": "Robot:",
+	"pywikibot-cosmetic-changes": "; kosmetiske ændringer",
+	"pywikibot-enter-category-name": "Skriv kategorinavnet:",
+	"pywikibot-enter-file-links-processing": "Links til hvilken fil side der skal behandles?",
+	"pywikibot-enter-finished-browser": "Tryk Enter når browserredigeringerne er færdige.",
+	"pywikibot-enter-namespace-number": "Angiv et navnerum via dets nummer:",
+	"pywikibot-enter-new-text": "Skriv den nye tekst:",
+	"pywikibot-enter-page-processing": "Hvilken side skal behandles?",
+	"pywikibot-enter-xml-filename": "Skriv XML-dumpets filnavn:",
+	"pywikibot-fixes-fckeditor": "Robot: Ret rich-editor HTML",
+	"pywikibot-fixes-html": "Robot: Konverter/ret HTML",
+	"pywikibot-fixes-isbn": "Robot: Formaterer ISBN",
+	"pywikibot-fixes-syntax": "Robot: Ret wikisyntaks",
+	"pywikibot-touch": "Pywikibot-nulredigering"
+}

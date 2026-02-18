@@ -1,0 +1,13 @@
+{
+	"@metadata": {
+		"authors": [
+			"Uchup19",
+			"WikiKaruhun"
+		]
+	},
+	"pywikibot-bot-prefix": "Bot:",
+	"pywikibot-cosmetic-changes": "; parobahan kosmétik",
+	"pywikibot-enter-new-text": "Pék asupkeun téks anyar:",
+	"pywikibot-enter-page-processing": "Kaca mana hu kudu diprosés?",
+	"pywikibot-fixes-isbn": "Bot: Mormat ISBN"
+}

@@ -6,7 +6,7 @@ Scripts Pywikibot pour Vikidia (fr/en) avec architecture modulaire.
 
 - `muffybot/`: coeur partagé (config, Discord, fichiers, helpers wiki)
 - `muffybot/tasks/`: logique métier des bots
-- `welcome.py`, `homonym.py`, `categinex.py`, `vandalism.py`: wrappers de compatibilité
+- `welcome.py`, `homonym.py`, `categinex.py`, `vandalism.py`, `vandalism_patterns.py`: wrappers de compatibilité
 - `envikidia/*.py`: wrappers de compatibilité pour le wiki anglais
 - `run_bot.py`: point d'entrée unique optionnel
 
@@ -16,6 +16,7 @@ Scripts Pywikibot pour Vikidia (fr/en) avec architecture modulaire.
 python3 run_bot.py welcome
 python3 run_bot.py vandalism-fr
 python3 run_bot.py envikidia-sandboxreset
+python3 run_bot.py vandalism-patterns
 python3 run_bot.py daily-report
 python3 run_bot.py weekly-report
 python3 run_bot.py monthly-report
@@ -51,6 +52,30 @@ python3 run_bot.py doctor
 - `DOCTOR_SEND_TEST_MESSAGES` (`1` pour envoyer des pings de test Discord via `doctor`)
 - `DOCTOR_QUEUE_WARNING_THRESHOLD` (seuil d'alerte sur la queue Discord)
 - `HOMONYM_MAX_PAGES_PER_RUN` (limite de pages homonymie traitées par exécution, défaut `1500`)
+- `VANDALISM_REVIEW_RULE_WEIGHT_FACTOR` (poids appliqué aux règles dynamiques en mode review, défaut `0.65`)
+- `VANDALISM_BURST_WINDOW_MINUTES` (fenêtre pour détecter les salves d'édition par utilisateur, défaut `12`)
+- `VANDALISM_BURST_THRESHOLD` (nb d'éditions mini dans la fenêtre pour activer le signal burst, défaut `3`)
+- `VANDALISM_BURST_SCORE_BOOST` (bonus de score par niveau burst, défaut `0.08`)
+- `VANDALISM_SENSITIVE_TITLE_BOOST` (bonus de score sur titres sensibles avec signaux risqués, défaut `0.08`)
+- `VANDALISM_SENSITIVE_TITLE_KEYWORDS` (mots-clés titres sensibles, CSV)
+- `VANDALISM_PATTERN_MIN_TOKEN_HITS` (min occurrences d'un token pour générer une regex auto, défaut `2`)
+- `VANDALISM_PATTERN_MIN_PHRASE_HITS` (min occurrences d'une phrase pour regex auto, défaut `3`)
+- `VANDALISM_PATTERN_MIN_SUPPORT` (support minimum d'une regex sur corpus vandalisme, défaut `2`)
+- `VANDALISM_PATTERN_MIN_PRECISION` (précision minimum retenue pour une regex auto, défaut `0.78`)
+- `VANDALISM_PATTERN_MAX_REGEX_RULES` (cap des regex auto chargées, défaut `180`)
+- `VANDALISM_PATTERN_ROLLING_WINDOW_DAYS` (fenêtre de précision glissante depuis SQLite, défaut `30`)
+- `VANDALISM_PATTERN_MIN_LIVE_HITS` (hits réels mini pour activer pleinement une règle, défaut `6`)
+- `VANDALISM_PATTERN_REVIEW_SUPPORT_THRESHOLD` (support mini training pour éviter review, défaut `5`)
+- `VANDALISM_PATTERN_EXPIRE_HITS` (hits mini avant expiration possible d'une règle, défaut `20`)
+- `VANDALISM_PATTERN_EXPIRE_PRECISION` (précision glissante sous laquelle la règle expire, défaut `0.35`)
+- `VANDALISM_FP_WHITELIST_MIN_HITS` (hits mini pour auto-whitelist, défaut `12`)
+- `VANDALISM_FP_WHITELIST_PRECISION` (précision seuil auto-whitelist, défaut `0.25`)
+- `VANDALISM_PATTERN_VALIDATION_HOLDOUT_RATIO` (pourcentage holdout offline, défaut `20`)
+- `HUMAN_REVERT_WINDOW_DAYS` (fenêtre d'analyse des RC humains, défaut `14`)
+- `HUMAN_REVERT_MAX_RC_PER_LANG` (nombre max de RC scannés par langue, défaut `4000`)
+- `HUMAN_REVERT_MAX_DIFFS_PER_LANG` (nombre max de diffs extraits par langue à chaque run, défaut `250`)
+- `HUMAN_REVERT_MAX_CORPUS_ENTRIES` (taille max du corpus humain persistant, défaut `50000`)
+- `HUMAN_REVERT_CORPUS_RETENTION_DAYS` (rétention des entrées corpus, défaut `120`)
 
 Important:
 - Copier `config.example.py` vers `config.py` et compléter les valeurs.
@@ -58,6 +83,8 @@ Important:
 - Avec `SERVER_LOG_EVERY_ACTION=1`, le canal serveur recevra un très grand volume de logs.
 - Les actions serveur sont aussi historisées localement (`SERVER_ACTIONS_FILE`) avec rotation.
 - En cas de panne temporaire Discord, les notifications sont mises en file d'attente dans `logs/discord_queue.json`.
+- Le script `vandalism_patterns.py` génère `vandalism_common_patterns.txt`, `vandalism_detection_regex.txt`, `vandalism_pattern_validation.json`, `vandalism_rule_drift_report.txt` et `vandalism_false_positive_whitelist.json`.
+- Le script `vandalism.py` alimente aussi `vandalism_intel.sqlite3` (analytics règles et outcomes).
 
 ## Cron
 

@@ -1,0 +1,18 @@
+{
+	"@metadata": {
+		"authors": [
+			"Lifeway",
+			"Гусейн"
+		]
+	},
+	"pywikibot-bot-prefix": "Бот:",
+	"pywikibot-cosmetic-changes": "; косметикә дәгишон",
+	"pywikibot-enter-category-name": "Зәһмәт ныбо, тиспири ном дәғандән:",
+	"pywikibot-enter-file-links-processing": "Сәбонон бә кон гылә шикилон сәһифә бәпе емол кардә быбун?",
+	"pywikibot-enter-finished-browser": "Enter егәтәдыгмә егәтәјон, кејнә обәрәхнејон бә браузер дәгишијон дәғандеј.",
+	"pywikibot-enter-namespace-number": "Зәһмәт ныбо, номон мәкон нумрә дәғандән:",
+	"pywikibot-enter-new-text": "Зәһмәт ныбо, нујә мәтн дәғандән:",
+	"pywikibot-enter-page-processing": "Кон гылә сәһифә бәпе емол кардә быбу?",
+	"pywikibot-enter-xml-filename": "Зәһмәт ныбо, бынывыштән XML дампи фајли ном:",
+	"pywikibot-fixes-isbn": "Робот: ISBN симо дәгиш карде"
+}

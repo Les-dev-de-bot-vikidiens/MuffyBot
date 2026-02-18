@@ -14,6 +14,7 @@ from .runtime import (
     apply_presence,
     backup_database,
     build_health_embed,
+    dry_run_enabled,
     ensure_owner_interaction,
     export_runs_csv_file,
     is_public_channel_allowed,
@@ -43,6 +44,7 @@ from .utils import fmt_duration, memory_used_percent, read_tail, utc_now
 def build_public_panel_embed() -> discord.Embed:
     maintenance = get_setting_bool("maintenance_mode", False)
     public_enabled = get_setting_bool("public_start_enabled", True)
+    dry_run = dry_run_enabled()
     max_parallel = get_setting_int("max_parallel_runs", 4, min_value=1, max_value=20)
     cooldown = get_setting_int("public_cooldown_seconds", 120, min_value=0, max_value=3600)
     used_pct = memory_used_percent()
@@ -71,7 +73,7 @@ def build_public_panel_embed() -> discord.Embed:
 
     embed = discord.Embed(title="Panneau Public Scripts", color=0x3498DB, timestamp=utc_now())
     embed.description = (
-        f"Maintenance: `{'ON' if maintenance else 'OFF'}` | Start public: `{'ON' if public_enabled else 'OFF'}`\n"
+        f"Maintenance: `{'ON' if maintenance else 'OFF'}` | Start public: `{'ON' if public_enabled else 'OFF'}` | Dry-run: `{'ON' if dry_run else 'OFF'}`\n"
         f"Parallel: `{len(config.RUNNING_SCRIPTS)}/{max_parallel}` | Queue: `{len(config.RUN_QUEUE)}` | Cooldown: `{cooldown}s`"
     )
     embed.add_field(
@@ -91,6 +93,7 @@ def build_public_panel_embed() -> discord.Embed:
 def build_op_panel_embed() -> discord.Embed:
     maintenance = get_setting_bool("maintenance_mode", False)
     public_enabled = get_setting_bool("public_start_enabled", True)
+    dry_run = dry_run_enabled()
     max_parallel = get_setting_int("max_parallel_runs", 4, min_value=1, max_value=20)
     cooldown = get_setting_int("public_cooldown_seconds", 120, min_value=0, max_value=3600)
     retries = get_setting_int("max_auto_retries", 1, min_value=0, max_value=5)
@@ -103,7 +106,7 @@ def build_op_panel_embed() -> discord.Embed:
     embed = discord.Embed(title="Panneau OP (ephemere)", color=0xE67E22, timestamp=utc_now())
     embed.description = (
         f"Owner ID: `{config.OWNER_USER_ID}`\n"
-        f"Maintenance: `{'ON' if maintenance else 'OFF'}` | Public start: `{'ON' if public_enabled else 'OFF'}`\n"
+        f"Maintenance: `{'ON' if maintenance else 'OFF'}` | Public start: `{'ON' if public_enabled else 'OFF'}` | Dry-run: `{'ON' if dry_run else 'OFF'}`\n"
         f"Parallel: `{len(config.RUNNING_SCRIPTS)}/{max_parallel}` | Queue: `{len(config.RUN_QUEUE)}` | Cooldown public: `{cooldown}s`\n"
         f"Retry: `{retries}` (backoff `{backoff}s`)\n"
         f"Presence: `{state}` `{mode}` text=`{text[:80]}`"
@@ -427,8 +430,9 @@ class OpServiceSelect(discord.ui.Select):
         options: list[discord.SelectOption] = [
             discord.SelectOption(label="toggle maintenance", value="meta|toggle_maintenance"),
             discord.SelectOption(label="toggle public start", value="meta|toggle_public_start"),
+            discord.SelectOption(label="toggle dry-run", value="meta|toggle_dry_run"),
             discord.SelectOption(label="clear queue", value="meta|clear_queue"),
-            discord.SelectOption(label="refresh presence", value="meta|refresh_presence"),
+            discord.SelectOption(label="digest now", value="meta|digest_now"),
         ]
         for service in config.ALLOWED_SYSTEMD_SERVICES:
             for action in ("status", "restart", "start", "stop"):
@@ -470,6 +474,14 @@ class OpServiceSelect(discord.ui.Select):
                 await maybe_refresh_public_panel(force=True)
                 return
 
+            if action == "toggle_dry_run":
+                enabled = not get_setting_bool("dry_run_mode", False)
+                set_setting("dry_run_mode", "1" if enabled else "0")
+                audit(interaction.user.id, "panel_op_set_dry_run", "dry_run_mode", str(int(enabled)), guild_id=interaction.guild_id, channel_id=interaction.channel_id)
+                await respond_ephemeral(interaction, f"dry_run_mode={'ON' if enabled else 'OFF'}")
+                await maybe_refresh_public_panel(force=True)
+                return
+
             if action == "clear_queue":
                 async with config.STATE_LOCK:
                     count = len(config.RUN_QUEUE)
@@ -484,6 +496,12 @@ class OpServiceSelect(discord.ui.Select):
                 await apply_presence()
                 audit(interaction.user.id, "panel_op_refresh_presence", "presence", "ok", guild_id=interaction.guild_id, channel_id=interaction.channel_id)
                 await respond_ephemeral(interaction, "Presence rafraichie.")
+                return
+
+            if action == "digest_now":
+                await send_supervision("Digest force demande via OP panel")
+                audit(interaction.user.id, "panel_op_digest_now", "digest", "sent", guild_id=interaction.guild_id, channel_id=interaction.channel_id)
+                await respond_ephemeral(interaction, "Digest force envoye (message test supervision).")
                 return
 
             await respond_ephemeral(interaction, "Action meta inconnue.")
@@ -996,10 +1014,3 @@ class OpPanelView(discord.ui.View):
         if not await ensure_owner_interaction(interaction):
             return
         await interaction.response.send_modal(BotStatusModal())
-
-    @discord.ui.button(label="Digest now", style=discord.ButtonStyle.secondary, row=4)
-    async def digest_now_btn(self, button: discord.ui.Button, interaction: discord.Interaction) -> None:
-        if not await ensure_owner_interaction(interaction):
-            return
-        await send_supervision("Digest force demande via OP panel")
-        await respond_ephemeral(interaction, "Digest force envoye (message test supervision).")

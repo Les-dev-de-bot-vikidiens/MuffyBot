@@ -1,0 +1,25 @@
+{
+	"@metadata": {
+		"authors": [
+			"Alchimista",
+			"Hamilton Abreu",
+			"Leonardo Gregianin",
+			"Malafaya",
+			"Vitorvicentevalente"
+		]
+	},
+	"pywikibot-bot-prefix": "Robô:",
+	"pywikibot-cosmetic-changes": "; mudanças triviais",
+	"pywikibot-enter-category-name": "Por favor, introduza o nome da categoria:",
+	"pywikibot-enter-file-links-processing": "Devem ser processadas as hiperligações para qual página de ficheiro?",
+	"pywikibot-enter-finished-browser": "Pressione Enter quando terminar no navegador",
+	"pywikibot-enter-namespace-number": "Por favor, introduza um espaço nominal usando o seu número:",
+	"pywikibot-enter-new-text": "Por favor, introduza o novo texto:",
+	"pywikibot-enter-page-processing": "Que página deve ser processada?",
+	"pywikibot-enter-xml-filename": "Por favor introduza o nome do ficheiro XML:",
+	"pywikibot-fixes-fckeditor": "Robô: A corrigir o HTML gerado pelo editor visual.",
+	"pywikibot-fixes-html": "Robô: Conversão ou correção de HTML",
+	"pywikibot-fixes-isbn": "Robô: A formatar o ISBN",
+	"pywikibot-fixes-syntax": "Robô: Correção da sintaxe wiki",
+	"pywikibot-touch": "Edição por toque de Pywikibot"
+}

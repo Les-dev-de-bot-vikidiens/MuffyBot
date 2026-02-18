@@ -1,0 +1,17 @@
+{
+	"@metadata": {
+		"authors": [
+			"Snævar",
+			"Sveinn í Felli"
+		]
+	},
+	"pywikibot-bot-prefix": "Vélmenni:",
+	"pywikibot-cosmetic-changes": "; útlitsbreytingar",
+	"pywikibot-enter-category-name": "Vinsamlegast sláðu inn nafn flokksins:",
+	"pywikibot-enter-file-links-processing": "Tengla á hvaða skráasíðu ætti að vinna með?",
+	"pywikibot-enter-finished-browser": "Ýttu á Enter þegar þú ert búinn í vafranum.",
+	"pywikibot-enter-namespace-number": "Vinsamlegast skrifaðu númer nafnrýmisins:",
+	"pywikibot-enter-new-text": "Vinsamlegast sláðu inn nýja textann:",
+	"pywikibot-enter-page-processing": "Hvaða síðu á að vinna við?",
+	"pywikibot-fixes-isbn": "Vélmenni: Forsnið ISBN"
+}

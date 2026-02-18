@@ -1,4 +1,4 @@
-#!/home/ubuntu/luffybotvdversion/venv/bin/python3
+#!/home/ubuntu/pywikibot-scripts/discord-bot/venv/bin/python
 # -*- coding: utf-8 -*-
 import re
 import sys

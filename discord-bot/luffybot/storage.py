@@ -87,6 +87,7 @@ def init_db() -> None:
         defaults = {
             "maintenance_mode": "0",
             "public_start_enabled": "1",
+            "dry_run_mode": "0",
             "max_parallel_runs": "4",
             "public_cooldown_seconds": "120",
             "public_panel_channel_id": "",
@@ -98,6 +99,9 @@ def init_db() -> None:
             "max_process_ram_mb": "1400",
             "max_load_per_cpu_x10": "30",
             "min_free_disk_gb": "2",
+            "startup_pressure_ram_percent": "95",
+            "startup_pressure_load_per_cpu_x10": "45",
+            "startup_pressure_min_free_disk_gb": "1",
             "log_retention_days": "14",
             "presence_state": "online",
             "presence_mode": "watching",
@@ -369,6 +373,7 @@ def summarize_runs(start_iso: str, end_iso: str) -> dict[str, Any]:
             """
             SELECT COUNT(*) AS total,
                    SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) AS success_count,
+                   SUM(CASE WHEN status != 'success' THEN 1 ELSE 0 END) AS failure_count,
                    AVG(duration_seconds) AS avg_duration
             FROM script_runs
             WHERE started_at >= ? AND started_at < ?
@@ -399,18 +404,33 @@ def summarize_runs(start_iso: str, end_iso: str) -> dict[str, Any]:
             (start_iso, end_iso),
         ).fetchall()
 
+        failed_by_script = conn.execute(
+            """
+            SELECT script_key, COUNT(*) AS c
+            FROM script_runs
+            WHERE started_at >= ? AND started_at < ? AND status != 'success'
+            GROUP BY script_key
+            ORDER BY c DESC
+            LIMIT 8
+            """,
+            (start_iso, end_iso),
+        ).fetchall()
+
     total = int(totals["total"] or 0)
     success_count = int(totals["success_count"] or 0)
+    failure_count = int(totals["failure_count"] or 0)
     avg_duration = float(totals["avg_duration"] or 0.0)
     success_rate = (success_count / total * 100.0) if total else 0.0
 
     return {
         "total": total,
         "success_count": success_count,
+        "failure_count": failure_count,
         "success_rate": success_rate,
         "avg_duration": avg_duration,
         "by_status": [(str(row["status"]), int(row["c"])) for row in by_status],
         "by_script": [(str(row["script_key"]), int(row["c"])) for row in by_script],
+        "by_script_failed": [(str(row["script_key"]), int(row["c"])) for row in failed_by_script],
     }
 
 

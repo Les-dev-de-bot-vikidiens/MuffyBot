@@ -76,6 +76,13 @@ def mark_panel_dirty() -> None:
     config.PANEL_DIRTY = True
 
 
+def dry_run_enabled() -> bool:
+    raw = os.getenv("MUFFYBOT_DRY_RUN", "").strip().lower()
+    if raw in {"1", "true", "yes", "on"}:
+        return True
+    return get_setting_bool("dry_run_mode", False)
+
+
 def load_token() -> str:
     token = (os.getenv("DISCORD_TOKEN") or "").strip()
     if token:
@@ -330,11 +337,16 @@ async def launch_script(
 
         log_handle = log_path.open("w", encoding="utf-8")
         try:
+            child_env = os.environ.copy()
+            child_env["MUFFYBOT_DRY_RUN"] = "1" if dry_run_enabled() else "0"
+            child_env["LUFFYBOT_RUN_ID"] = str(run_id)
+            child_env["LUFFYBOT_SCRIPT_KEY"] = script_key
             process = await asyncio.create_subprocess_exec(
                 *script.command,
                 cwd=str(config.PYWIKIBOT_DIR),
                 stdout=log_handle,
                 stderr=subprocess.STDOUT,
+                env=child_env,
             )
         except Exception:
             log_handle.close()
@@ -372,10 +384,39 @@ async def launch_script(
         event="run_start",
         actor_id=requester_id,
         channel_id=channel_id,
-        details=f"run_id={run_id} queue_id={queue_id} script={script_key} pid={process.pid} retry={retry_index}",
+        details=(
+            f"run_id={run_id} queue_id={queue_id} script={script_key} pid={process.pid} "
+            f"retry={retry_index} dry_run={int(dry_run_enabled())}"
+        ),
     )
     asyncio.create_task(watch_script(running))
     return run_id, process.pid
+
+
+def startup_backpressure_reason(script_key: str) -> str | None:
+    script = config.SCRIPT_DEFS.get(script_key)
+    if script and script.critical:
+        return None
+
+    ram_threshold = get_setting_int("startup_pressure_ram_percent", 95, min_value=50, max_value=99)
+    load_threshold_x10 = get_setting_int("startup_pressure_load_per_cpu_x10", 45, min_value=5, max_value=150)
+    disk_threshold = get_setting_int("startup_pressure_min_free_disk_gb", 1, min_value=0, max_value=500)
+
+    used_mb, total_mb = memory_stats_mb()
+    ram_pct = (used_mb / total_mb * 100.0) if total_mb else 0.0
+    if ram_pct >= ram_threshold:
+        return f"ram_pct={ram_pct:.1f}>={ram_threshold}"
+
+    per_cpu = load_per_cpu()
+    if per_cpu >= (load_threshold_x10 / 10.0):
+        return f"load_per_cpu={per_cpu:.2f}>={(load_threshold_x10 / 10.0):.2f}"
+
+    disk = shutil.disk_usage(str(config.PYWIKIBOT_DIR))
+    free_gb = disk.free // (1024**3)
+    if free_gb <= disk_threshold:
+        return f"free_gb={free_gb}<={disk_threshold}"
+
+    return None
 
 
 async def process_queue(max_launches: int = 8) -> list[tuple[config.QueuedScript, int, int]]:
@@ -387,6 +428,21 @@ async def process_queue(max_launches: int = 8) -> list[tuple[config.QueuedScript
             if idx is None:
                 break
             item = config.RUN_QUEUE.pop(idx)
+
+        pressure = startup_backpressure_reason(item.script_key)
+        if pressure and not item.bypass_limits:
+            item.not_before_monotonic = asyncio.get_running_loop().time() + 8.0
+            async with config.STATE_LOCK:
+                if item.script_key not in config.RUNNING_SCRIPTS and item.script_key not in queued_script_keys():
+                    config.RUN_QUEUE.append(item)
+            server_log(
+                level="warning",
+                event="queue_deferred_pressure",
+                actor_id=item.requester_id,
+                channel_id=item.channel_id,
+                details=f"queue_id={item.queue_id} script={item.script_key} reason={pressure}",
+            )
+            continue
 
         try:
             run_id, pid = await launch_script(
@@ -710,14 +766,26 @@ def build_period_digest_message(kind: str, start: dt.datetime, end: dt.datetime)
     summary = summarize_runs(start.isoformat(), end.isoformat())
     status_txt = ", ".join([f"{name}:{count}" for name, count in summary["by_status"]]) or "aucun"
     script_txt = ", ".join([f"{name}:{count}" for name, count in summary["by_script"]]) or "aucun"
+    failed_txt = ", ".join([f"{name}:{count}" for name, count in summary["by_script_failed"]]) or "aucun"
+
+    anomalies: list[str] = []
+    if summary["total"] >= 10 and summary["success_rate"] < 70.0:
+        anomalies.append("success_rate_low")
+    if summary["failure_count"] >= 8:
+        anomalies.append("many_failures")
+    if len(config.RUN_QUEUE) >= 15:
+        anomalies.append("queue_high")
+    anomaly_txt = ",".join(anomalies) if anomalies else "none"
 
     return (
         f"Digest {kind}\n"
         f"periode={start.date()} -> {(end - dt.timedelta(seconds=1)).date()}\n"
-        f"runs_total={summary['total']} success={summary['success_count']} "
+        f"runs_total={summary['total']} success={summary['success_count']} failed={summary['failure_count']} "
         f"success_rate={summary['success_rate']:.1f}% avg_dur={fmt_duration(summary['avg_duration'])}\n"
+        f"etat_live=running:{len(config.RUNNING_SCRIPTS)} queue:{len(config.RUN_QUEUE)} dry_run:{int(dry_run_enabled())} anomalies:{anomaly_txt}\n"
         f"par_statut={status_txt}\n"
-        f"top_scripts={script_txt}"
+        f"top_scripts={script_txt}\n"
+        f"top_failures={failed_txt}"
     )
 
 

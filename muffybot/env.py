@@ -82,6 +82,16 @@ def get_int_env(name: str, default: int = 0) -> int:
         return default
 
 
+def get_float_env(name: str, default: float = 0.0) -> float:
+    raw = get_env(name)
+    if raw is None:
+        return default
+    try:
+        return float(str(raw))
+    except (TypeError, ValueError):
+        return default
+
+
 def get_csv_env(name: str, default: list[str] | None = None) -> list[str]:
     raw = get_env(name)
     if raw is None:

@@ -1,0 +1,10 @@
+{
+	"@metadata": {
+		"authors": [
+			"Slomox"
+		]
+	},
+	"pywikibot-bot-prefix": "Bot:",
+	"pywikibot-cosmetic-changes": "; kosmeetsch Ännern",
+	"pywikibot-fixes-isbn": "Bot: ISBN-Format"
+}

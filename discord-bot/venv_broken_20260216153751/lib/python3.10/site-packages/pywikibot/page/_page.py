@@ -1,0 +1,218 @@
+"""Objects representing a MediaWiki page.
+
+Various Wikibase pages are defined in ``page._wikibase.py``,
+various pages for Proofread Extensions are defined in
+``pywikibot.proofreadpage``.
+
+.. note:: `Link` objects represent a wiki-page's title, while
+   :class:`pywikibot.Page` objects (defined here) represent the page
+   itself, including its contents.
+"""
+#
+# (C) Pywikibot team, 2008-2025
+#
+# Distributed under the terms of the MIT license.
+#
+from __future__ import annotations
+
+import pywikibot
+from pywikibot import textlib
+from pywikibot.exceptions import (
+    Error,
+    InterwikiRedirectPageError,
+    IsNotRedirectPageError,
+    IsRedirectPageError,
+    NoPageError,
+    UnknownExtensionError,
+)
+from pywikibot.page._basepage import BasePage
+from pywikibot.page._toolforge import WikiBlameMixin
+from pywikibot.site import Namespace
+from pywikibot.tools import cached, deprecated_args
+
+
+__all__ = ['Page']
+
+
+class Page(BasePage, WikiBlameMixin):
+
+    """Page: A MediaWiki page."""
+
+    def __init__(self, source, title: str = '', ns=0) -> None:
+        """Instantiate a Page object."""
+        if isinstance(source, pywikibot.site.BaseSite) and not title:
+            raise ValueError('Title must be specified and not empty '
+                             'if source is a Site.')
+        super().__init__(source, title, ns)
+
+    @property
+    @cached
+    def raw_extracted_templates(self):
+        """Extract templates and parameters.
+
+        This method is using
+        :func:`textlib.extract_templates_and_params`.
+        Disabled parts and whitespace are stripped, except for
+        whitespace in anonymous positional arguments.
+
+        :rtype: list of (str, OrderedDict)
+        """
+        return textlib.extract_templates_and_params(self.text, True, True)
+
+    def templatesWithParams(  # noqa: N802
+        self,
+    ) -> list[tuple[pywikibot.Page, list[str]]]:
+        """Return templates used on this Page.
+
+        The templates are extracted by :meth:`raw_extracted_templates`,
+        with positional arguments placed first in order, and each named
+        argument appearing as 'name=value'.
+
+        All parameter keys and values for each template are stripped of
+        whitespace.
+
+        :return: a list of tuples with one tuple for each template
+            invocation in the page, with the template Page as the first
+            entry and a list of parameters as the second entry.
+        """
+        # WARNING: may not return all templates used in particularly
+        # intricate cases such as template substitution
+        titles = {t.title()
+                  for t in self.templates(namespaces=Namespace.TEMPLATE)}
+        templates = self.raw_extracted_templates
+        # backwards-compatibility: convert the dict returned as the second
+        # element into a list in the format used by old scripts
+        result = []
+        for template in templates:
+            try:
+                link = pywikibot.Link(template[0], self.site,
+                                      default_namespace=Namespace.TEMPLATE)
+                if link.canonical_title() not in titles:
+                    continue
+            except Error:
+                # this is a parser function or magic word, not template name
+                # the template name might also contain invalid parts
+                continue
+            args = template[1]
+            intkeys = {}
+            named = {}
+            positional = []
+            for key in sorted(args):
+                try:
+                    intkeys[int(key)] = args[key]
+                except ValueError:
+                    named[key] = args[key]
+
+            for i in range(1, len(intkeys) + 1):
+                # only those args with consecutive integer keys can be
+                # treated as positional; an integer could also be used
+                # (out of order) as the key for a named argument
+                # example: {{tmp|one|two|5=five|three}}
+                if i in intkeys:
+                    positional.append(intkeys[i])
+                    continue
+
+                for k, v in intkeys.items():
+                    if k < 1 or k >= i:
+                        named[str(k)] = v
+                break
+
+            positional += [f'{key}={value}' for key, value in named.items()]
+            result.append((pywikibot.Page(link, self.site), positional))
+        return result
+
+    @deprecated_args(botflag='bot')  # since 9.3.0
+    def set_redirect_target(
+        self,
+        target_page: pywikibot.Page | str,
+        create: bool = False,
+        force: bool = False,
+        keep_section: bool = False,
+        save: bool = True,
+        **kwargs
+    ) -> None:
+        """Change the page's text to point to the redirect page.
+
+        .. versionchanged:: 9.3
+           *botflag* keyword parameter was renamed to *bot*.
+
+        :param target_page: target of the redirect, this argument is
+            required.
+        :param create: if true, it creates the redirect even if the page
+            doesn't exist.
+        :param force: if true, it set the redirect target even the page
+            doesn't exist or it's not redirect.
+        :param keep_section: if the old redirect links to a section
+            and the new one doesn't it uses the old redirect's section.
+        :param save: if true, it saves the page immediately.
+        :param kwargs: Arguments which are used for saving the page
+            directly afterwards, like *summary* for edit summary.
+        """
+        if isinstance(target_page, str):
+            target_page = pywikibot.Page(self.site, target_page)
+        elif self.site != target_page.site:
+            raise InterwikiRedirectPageError(self, target_page)
+
+        if not self.exists() and not (create or force):
+            raise NoPageError(self)
+
+        if self.exists() and not self.isRedirectPage() and not force:
+            raise IsNotRedirectPageError(self)
+
+        old_text = self.text
+        result = self.site.redirect_regex.search(old_text)
+        if result:
+            oldlink = result[1]
+            if (keep_section and '#' in oldlink
+                    and target_page.section() is None):
+                sectionlink = oldlink[oldlink.index('#'):]
+                target_page = pywikibot.Page(
+                    self.site,
+                    target_page.title() + sectionlink
+                )
+            prefix = self.text[:result.start()]
+            suffix = self.text[result.end():]
+        else:
+            prefix = suffix = ''
+
+        target_link = target_page.title(as_link=True, textlink=True,
+                                        allow_interwiki=False)
+        target_link = f'#{self.site.redirect()} {target_link}'
+        self.text = prefix + target_link + suffix
+        if save:
+            self.save(**kwargs)
+
+    def get_best_claim(self, prop: str) -> pywikibot.Claim | None:
+        """Return the first best Claim for this page.
+
+        Return the first 'preferred' ranked Claim specified by Wikibase
+        property or the first 'normal' one otherwise.
+
+        .. versionadded:: 3.0
+
+        .. seealso:: :meth:`pywikibot.ItemPage.get_best_claim`
+
+        :param prop: Wikibase property ID, must be of the form ``P``
+            followed by one or more digits (e.g. ``P31``).
+        :return: Claim object given by Wikibase property number
+            for this page object.
+
+        :raises UnknownExtensionError: site has no Wikibase extension
+        """
+        def get_item_page(page):
+            if not page.site.has_data_repository:
+                raise UnknownExtensionError(
+                    f'Wikibase is not implemented for {page.site}.')
+            try:
+                item_p = page.data_item()
+                item_p.get()
+                return item_p
+            except NoPageError:
+                return None
+            except IsRedirectPageError:
+                return get_item_page(item_p.getRedirectTarget())
+
+        item_page = get_item_page(page=self)
+        if item_page:
+            return item_page.get_best_claim(prop)
+        return None

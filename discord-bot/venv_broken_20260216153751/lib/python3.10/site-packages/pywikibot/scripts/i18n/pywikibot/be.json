@@ -1,0 +1,19 @@
+{
+	"@metadata": {
+		"authors": [
+			"Francesco Cosoleto",
+			"LexArt",
+			"Mechanizatar",
+			"Yury Tarasievich"
+		]
+	},
+	"pywikibot-bot-prefix": "Бот:",
+	"pywikibot-cosmetic-changes": "; дробныя змены",
+	"pywikibot-enter-category-name": "Калі ласка, увядзіце назву катэгорыі:",
+	"pywikibot-enter-namespace-number": "Калі ласка, увядзіце нумар прасторы імёнаў:",
+	"pywikibot-enter-new-text": "Калі ласка, увядзіце новы тэкст:",
+	"pywikibot-fixes-fckeditor": "Робат: Выпраўленне HTML-кода рэдактара фарматаванага тэксту",
+	"pywikibot-fixes-html": "Бот: карэкцыя HTML",
+	"pywikibot-fixes-isbn": "робат аформіў ISBN",
+	"pywikibot-fixes-syntax": "Бот: Карэкцыя вiкi-сiнтаксiсу"
+}

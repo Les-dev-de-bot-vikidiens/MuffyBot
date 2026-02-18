@@ -1,0 +1,28 @@
+{
+	"@metadata": {
+		"authors": [
+			"Ainali",
+			"Anhn",
+			"Cybjit",
+			"Jopparn",
+			"Lokal Profil",
+			"Mjälten",
+			"WikiPhoenix",
+			"skorpan"
+		]
+	},
+	"pywikibot-bot-prefix": "Bot:",
+	"pywikibot-cosmetic-changes": "; kosmetiska ändringar",
+	"pywikibot-enter-category-name": "Ange kategorinamnet:",
+	"pywikibot-enter-file-links-processing": "Länkar till vilken filsida ska behandlas?",
+	"pywikibot-enter-finished-browser": "Tryck på Enter när du är klar i webbläsaren.",
+	"pywikibot-enter-namespace-number": "Ange namnrymden via dess nummer:",
+	"pywikibot-enter-new-text": "Skriv in den nya texten:",
+	"pywikibot-enter-page-processing": "Vilken sida ska behandlas?",
+	"pywikibot-enter-xml-filename": "Ange XML-dumpens filnamn:",
+	"pywikibot-fixes-fckeditor": "Bot: Åtgärdar Rich-editor-html",
+	"pywikibot-fixes-html": "Bot: Konverterar/korrigerar HTML",
+	"pywikibot-fixes-isbn": "Bot: Formaterar ISBN",
+	"pywikibot-fixes-syntax": "Bot: Fixar wikisyntax",
+	"pywikibot-touch": "Pywikibot noll-redigering"
+}

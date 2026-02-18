@@ -1,0 +1,24 @@
+{
+	"@metadata": {
+		"authors": [
+			"Erdemaslancan",
+			"Gırd",
+			"Kumkumuk",
+			"Mirzali"
+		]
+	},
+	"pywikibot-bot-prefix": "Bot:",
+	"pywikibot-cosmetic-changes": "; kozmetik vurnayışi",
+	"pywikibot-enter-category-name": "Nameyê kategoriye cı kewê:",
+	"pywikibot-enter-file-links-processing": "Gıreyê kamci pela resıman wa bıgureniyo?",
+	"pywikibot-enter-finished-browser": "Cıgeyrayoği de ke qediya gocega enteri bıtıkne",
+	"pywikibot-enter-namespace-number": "Numreyê cı ra yew name cı kewê:",
+	"pywikibot-enter-new-text": "Nuşteyê newey cı kewê:",
+	"pywikibot-enter-page-processing": "Kamci pele wa bınuşiyo?",
+	"pywikibot-enter-xml-filename": "Namey yedegê dosya XMLi cıkewê:",
+	"pywikibot-fixes-fckeditor": "Bot: zengin-editor html keno fiks",
+	"pywikibot-fixes-html": "Robot: HTMLi çarneno a/vırazeno",
+	"pywikibot-fixes-isbn": "Boti ISBN'i timar kerd",
+	"pywikibot-fixes-syntax": "Bot: Wiki-sentaks raşt ke",
+	"pywikibot-touch": "Vurnayışê Pywikibot touchi"
+}

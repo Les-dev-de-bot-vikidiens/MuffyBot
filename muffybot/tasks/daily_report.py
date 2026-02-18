@@ -12,7 +12,9 @@ from typing import Any
 from muffybot.discord import log_server_action, send_discord_webhook, send_task_report
 from muffybot.env import get_env, load_dotenv
 from muffybot.files import read_json
+from muffybot.locking import LockUnavailableError, hold_lock
 from muffybot.paths import ENVIKIDIA_DIR, LOG_DIR, ROOT_DIR
+from muffybot.task_control import report_lock_unavailable
 from muffybot.wiki import prepare_runtime
 
 LOGGER = logging.getLogger(__name__)
@@ -227,122 +229,127 @@ def run(period: str = "daily") -> int:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s")
     prepare_runtime(ROOT_DIR)
     report_script_name = _script_name(period)
-    log_server_action("report_run_start", script_name=report_script_name, include_runtime=True, context={"period": period})
+    lock_name = f"report-{period.strip().lower()}"
+    try:
+        with hold_lock(lock_name):
+            log_server_action("report_run_start", script_name=report_script_name, include_runtime=True, context={"period": period})
 
-    now = datetime.now(timezone.utc)
-    window_hours = _window_hours(period)
-    since = now - timedelta(hours=window_hours)
+            now = datetime.now(timezone.utc)
+            window_hours = _window_hours(period)
+            since = now - timedelta(hours=window_hours)
 
-    scripts, totals = _aggregate_task_reports(since=since)
-    reverts = _aggregate_reverts(since=since)
-    queue_depth = _discord_queue_depth()
-    log_server_action(
-        "report_aggregates_ready",
-        script_name=report_script_name,
-        context={
-            "period": period,
-            "window_hours": window_hours,
-            "runs_total": int(totals["runs"]),
-            "reverts_total": int(reverts["total"]),
-            "queue_depth": queue_depth,
-        },
-    )
+            scripts, totals = _aggregate_task_reports(since=since)
+            reverts = _aggregate_reverts(since=since)
+            queue_depth = _discord_queue_depth()
+            log_server_action(
+                "report_aggregates_ready",
+                script_name=report_script_name,
+                context={
+                    "period": period,
+                    "window_hours": window_hours,
+                    "runs_total": int(totals["runs"]),
+                    "reverts_total": int(reverts["total"]),
+                    "queue_depth": queue_depth,
+                },
+            )
 
-    top_scripts: list[str] = []
-    for script_name, stats in sorted(scripts.items(), key=lambda item: (-item[1]["runs"], item[0]))[:10]:
-        avg_duration = stats["duration_sum"] / stats["duration_count"] if stats["duration_count"] else 0.0
-        errors = int(stats["error"] + stats["failed"])
-        top_scripts.append(f"{script_name}: {int(stats['runs'])} runs, {errors} erreurs, {avg_duration:.1f}s moy")
+            top_scripts: list[str] = []
+            for script_name, stats in sorted(scripts.items(), key=lambda item: (-item[1]["runs"], item[0]))[:10]:
+                avg_duration = stats["duration_sum"] / stats["duration_count"] if stats["duration_count"] else 0.0
+                errors = int(stats["error"] + stats["failed"])
+                top_scripts.append(f"{script_name}: {int(stats['runs'])} runs, {errors} erreurs, {avg_duration:.1f}s moy")
 
-    top_pages = [f"{title}: {count}" for title, count in reverts.get("top_pages", [])]
-    top_users = [f"{creator}: {count}" for creator, count in reverts.get("top_users", [])]
-    avg_confidence = float(reverts.get("avg_confidence", 0.0))
+            top_pages = [f"{title}: {count}" for title, count in reverts.get("top_pages", [])]
+            top_users = [f"{creator}: {count}" for creator, count in reverts.get("top_users", [])]
+            avg_confidence = float(reverts.get("avg_confidence", 0.0))
 
-    total_errors = int(totals["error"] + totals["failed"])
-    level = _report_level(total_errors=total_errors, queue_depth=queue_depth, reverts_total=int(reverts["total"]))
-    color_map = {"INFO": 3447003, "WARNING": 15105570, "CRITICAL": 15158332}
+            total_errors = int(totals["error"] + totals["failed"])
+            level = _report_level(total_errors=total_errors, queue_depth=queue_depth, reverts_total=int(reverts["total"]))
+            color_map = {"INFO": 3447003, "WARNING": 15105570, "CRITICAL": 15158332}
 
-    embed = {
-        "title": _period_title(period),
-        "description": (
-            f"Période UTC: {since.strftime('%Y-%m-%d %H:%M')} -> "
-            f"{now.strftime('%Y-%m-%d %H:%M')} ({window_hours}h)"
-        ),
-        "color": color_map.get(level, 3447003),
-        "fields": [
-            {
-                "name": "Exécutions",
-                "value": (
-                    f"Runs: {int(totals['runs'])}\n"
-                    f"Success: {int(totals['success'])}\n"
-                    f"Warning: {int(totals['warning'])}\n"
-                    f"Errors: {total_errors}"
+            embed = {
+                "title": _period_title(period),
+                "description": (
+                    f"Période UTC: {since.strftime('%Y-%m-%d %H:%M')} -> "
+                    f"{now.strftime('%Y-%m-%d %H:%M')} ({window_hours}h)"
                 ),
-                "inline": True,
-            },
-            {
-                "name": "Anti-vandalisme",
-                "value": (
-                    f"FR reverts: {int(reverts['fr'])}\n"
-                    f"EN reverts: {int(reverts['en'])}\n"
-                    f"Total: {int(reverts['total'])}\n"
-                    f"Confiance moy: {avg_confidence * 100:.1f}%"
-                ),
-                "inline": True,
-            },
-            {
-                "name": "Infra",
-                "value": f"Queue Discord: {queue_depth}\nNiveau: {level}",
-                "inline": True,
-            },
-            {
-                "name": "Top scripts",
-                "value": _short_list(top_scripts),
-                "inline": False,
-            },
-            {
-                "name": "Top pages revertées",
-                "value": _short_list(top_pages),
-                "inline": False,
-            },
-            {
-                "name": "Top utilisateurs revertés",
-                "value": _short_list(top_users),
-                "inline": False,
-            },
-        ],
-        "timestamp": now.isoformat().replace("+00:00", "Z"),
-    }
+                "color": color_map.get(level, 3447003),
+                "fields": [
+                    {
+                        "name": "Exécutions",
+                        "value": (
+                            f"Runs: {int(totals['runs'])}\n"
+                            f"Success: {int(totals['success'])}\n"
+                            f"Warning: {int(totals['warning'])}\n"
+                            f"Errors: {total_errors}"
+                        ),
+                        "inline": True,
+                    },
+                    {
+                        "name": "Anti-vandalisme",
+                        "value": (
+                            f"FR reverts: {int(reverts['fr'])}\n"
+                            f"EN reverts: {int(reverts['en'])}\n"
+                            f"Total: {int(reverts['total'])}\n"
+                            f"Confiance moy: {avg_confidence * 100:.1f}%"
+                        ),
+                        "inline": True,
+                    },
+                    {
+                        "name": "Infra",
+                        "value": f"Queue Discord: {queue_depth}\nNiveau: {level}",
+                        "inline": True,
+                    },
+                    {
+                        "name": "Top scripts",
+                        "value": _short_list(top_scripts),
+                        "inline": False,
+                    },
+                    {
+                        "name": "Top pages revertées",
+                        "value": _short_list(top_pages),
+                        "inline": False,
+                    },
+                    {
+                        "name": "Top utilisateurs revertés",
+                        "value": _short_list(top_users),
+                        "inline": False,
+                    },
+                ],
+                "timestamp": now.isoformat().replace("+00:00", "Z"),
+            }
 
-    sent = send_discord_webhook(embed=embed, level=level, script_name=report_script_name)
-    summary = (
-        f"{period} report envoyé: runs={int(totals['runs'])}, "
-        f"reverts={int(reverts['total'])}, errors={total_errors}, queue={queue_depth}, level={level}"
-    )
-    if not sent:
-        LOGGER.warning("Envoi Discord du rapport %s non confirmé", period)
-        log_server_action("report_send_failed", script_name=report_script_name, level="WARNING", context={"period": period, "level": level})
-    else:
-        log_server_action("report_send_success", script_name=report_script_name, level=level, context={"period": period, "level": level})
+            sent = send_discord_webhook(embed=embed, level=level, script_name=report_script_name)
+            summary = (
+                f"{period} report envoyé: runs={int(totals['runs'])}, "
+                f"reverts={int(reverts['total'])}, errors={total_errors}, queue={queue_depth}, level={level}"
+            )
+            if not sent:
+                LOGGER.warning("Envoi Discord du rapport %s non confirmé", period)
+                log_server_action("report_send_failed", script_name=report_script_name, level="WARNING", context={"period": period, "level": level})
+            else:
+                log_server_action("report_send_success", script_name=report_script_name, level=level, context={"period": period, "level": level})
 
-    send_task_report(
-        script_name=report_script_name,
-        status="SUCCESS" if sent else "WARNING",
-        duration_seconds=time.monotonic() - started,
-        details=summary,
-        stats={
-            "period": period,
-            "window_hours": window_hours,
-            "runs_total": int(totals["runs"]),
-            "errors_total": total_errors,
-            "reverts_total": int(reverts["total"]),
-            "discord_queue_depth": queue_depth,
-            "level": level,
-        },
-        level=level if sent else "WARNING",
-        channel="server",
-    )
-    return 0
+            send_task_report(
+                script_name=report_script_name,
+                status="SUCCESS" if sent else "WARNING",
+                duration_seconds=time.monotonic() - started,
+                details=summary,
+                stats={
+                    "period": period,
+                    "window_hours": window_hours,
+                    "runs_total": int(totals["runs"]),
+                    "errors_total": total_errors,
+                    "reverts_total": int(reverts["total"]),
+                    "discord_queue_depth": queue_depth,
+                    "level": level,
+                },
+                level=level if sent else "WARNING",
+                channel="server",
+            )
+            return 0
+    except LockUnavailableError:
+        return report_lock_unavailable(report_script_name, started, lock_name)
 
 
 def main() -> int:

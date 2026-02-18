@@ -1,0 +1,24 @@
+{
+	"@metadata": {
+		"authors": [
+			"Bináris",
+			"Dani",
+			"Dj",
+			"R-Joe",
+			"Tacsipacsi"
+		]
+	},
+	"pywikibot-bot-prefix": "Bot:",
+	"pywikibot-cosmetic-changes": "; kozmetikai változtatások",
+	"pywikibot-enter-category-name": "Add meg a kategórianevet:",
+	"pywikibot-enter-file-links-processing": "Melyik fájlra mutató hivatkozásokat kell feldolgozni?",
+	"pywikibot-enter-finished-browser": "Nyomd meg az Entert, ha végeztél a böngészővel!",
+	"pywikibot-enter-namespace-number": "Add meg a névteret a számával:",
+	"pywikibot-enter-new-text": "Add meg az új szöveget:",
+	"pywikibot-enter-page-processing": "Melyik lapot kell feldolgozni?",
+	"pywikibot-enter-xml-filename": "Add meg az XML dump fájl nevét:",
+	"pywikibot-fixes-fckeditor": "Bot: Vizuális szerkesztő HTML-jének javítása",
+	"pywikibot-fixes-html": "Robot: HTML konvertálása/javítása",
+	"pywikibot-fixes-isbn": "Bot: ISBN formázása",
+	"pywikibot-fixes-syntax": "Robot: Wiki jelölőnyelv javítása"
+}

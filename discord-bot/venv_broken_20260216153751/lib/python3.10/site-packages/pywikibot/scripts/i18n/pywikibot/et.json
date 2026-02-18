@@ -1,0 +1,13 @@
+{
+	"@metadata": {
+		"authors": [
+			"Avjoska",
+			"Pikne"
+		]
+	},
+	"pywikibot-bot-prefix": "Robot:",
+	"pywikibot-cosmetic-changes": "; kosmeetilised muudatused",
+	"pywikibot-enter-new-text": "Palun sisesta uus tekst:",
+	"pywikibot-fixes-isbn": "Robot: ISBN vormindatud",
+	"pywikibot-touch": "Pywikiboti tühimuudatus"
+}

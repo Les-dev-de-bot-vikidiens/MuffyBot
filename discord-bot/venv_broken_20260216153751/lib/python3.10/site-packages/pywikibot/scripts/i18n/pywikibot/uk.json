@@ -1,0 +1,29 @@
+{
+	"@metadata": {
+		"authors": [
+			"A1",
+			"Base",
+			"DDPAT",
+			"DixonD",
+			"Dmitry Nikitin",
+			"Ice bulldog",
+			"Movses",
+			"Ата",
+			"Тест"
+		]
+	},
+	"pywikibot-bot-prefix": "Бот:",
+	"pywikibot-cosmetic-changes": "; косметичні зміни",
+	"pywikibot-enter-category-name": "Введіть назву категорії:",
+	"pywikibot-enter-file-links-processing": "Посилання на які файли слід обробити?",
+	"pywikibot-enter-finished-browser": "Натисніть Enter, коли завершите редагування у браузері.",
+	"pywikibot-enter-namespace-number": "Введіть номер простору назв:",
+	"pywikibot-enter-new-text": "Введіть новий текст:",
+	"pywikibot-enter-page-processing": "Які сторінки потрібно переробити?",
+	"pywikibot-enter-xml-filename": "Будь ласка, введіть назву файлу дампу XML:",
+	"pywikibot-fixes-fckeditor": "Робот: Виправлення html після редактора форматованого тексту",
+	"pywikibot-fixes-html": "Бот: корекцiя HTML",
+	"pywikibot-fixes-isbn": "Робот: Форматування ISBN",
+	"pywikibot-fixes-syntax": "Бот: Корекцiя вiкi-синтаксису",
+	"pywikibot-touch": "Редагування Pywikibot"
+}

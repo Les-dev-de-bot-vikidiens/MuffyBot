@@ -11,6 +11,7 @@ from muffybot.discord import log_server_action, log_server_diagnostic, log_to_di
 from muffybot.env import get_int_env, load_dotenv
 from muffybot.locking import LockUnavailableError, hold_lock
 from muffybot.paths import ROOT_DIR
+from muffybot.task_control import report_lock_unavailable, save_page_or_dry_run
 from muffybot.wiki import connect_site, load_ignore_titles, prepare_runtime
 
 LOGGER = logging.getLogger(__name__)
@@ -82,6 +83,7 @@ def run() -> int:
             skipped_no_portail = 0
             parse_errors = 0
             save_errors = 0
+            dry_run_candidates = 0
 
             for page in template_page.getReferences(
                 only_template_inclusion=True,
@@ -126,16 +128,33 @@ def run() -> int:
 
                 page.text = str(wikicode)
                 try:
-                    page.save(summary="Retrait du modèle Portail sur page d'homonymie", minor=True, botflag=True)
-                    updated_pages += 1
-                    removed_templates += removed
-                    LOGGER.info("Portails supprimés sur %s", title)
-                    log_server_action(
-                        "portail_removed",
+                    saved = save_page_or_dry_run(
+                        page,
                         script_name=script_name,
-                        level="SUCCESS",
+                        summary="Retrait du modèle Portail sur page d'homonymie",
+                        minor=True,
+                        botflag=True,
                         context={"title": title, "removed_templates": removed},
                     )
+                    if saved:
+                        updated_pages += 1
+                        removed_templates += removed
+                        LOGGER.info("Portails supprimés sur %s", title)
+                        log_server_action(
+                            "portail_removed",
+                            script_name=script_name,
+                            level="SUCCESS",
+                            context={"title": title, "removed_templates": removed},
+                        )
+                    else:
+                        dry_run_candidates += 1
+                        removed_templates += removed
+                        log_server_action(
+                            "portail_remove_dry_run",
+                            script_name=script_name,
+                            level="WARNING",
+                            context={"title": title, "removed_templates": removed},
+                        )
                 except Exception as exc:
                     save_errors += 1
                     log_to_discord(f"Erreur sauvegarde {title}: {exc}", level="ERROR", script_name=script_name)
@@ -153,7 +172,7 @@ def run() -> int:
                 f"inspectées={inspected_pages}, modifiées={updated_pages}, "
                 f"portails_retirés={removed_templates}, skip_redirect={skipped_redirect}, "
                 f"skip_ignore={skipped_ignored}, skip_sans_portail={skipped_no_portail}, "
-                f"erreurs_parse={parse_errors}, erreurs_save={save_errors}"
+                f"erreurs_parse={parse_errors}, erreurs_save={save_errors}, dry_run={dry_run_candidates}"
             )
             status = "WARNING" if (parse_errors or save_errors) else "SUCCESS"
             level = "WARNING" if status == "WARNING" else "SUCCESS"
@@ -172,6 +191,7 @@ def run() -> int:
                     "skipped_no_portail": skipped_no_portail,
                     "parse_errors": parse_errors,
                     "save_errors": save_errors,
+                    "dry_run_candidates": dry_run_candidates,
                     "duration_seconds": round(time.monotonic() - started, 2),
                 },
             )
@@ -187,23 +207,14 @@ def run() -> int:
                     "templates_removed": removed_templates,
                     "parse_errors": parse_errors,
                     "save_errors": save_errors,
+                    "dry_run_candidates": dry_run_candidates,
                 },
                 level=level,
             )
             return 0
     except LockUnavailableError:
-        summary = "Exécution ignorée: une autre instance homonym.py est déjà en cours."
-        LOGGER.warning(summary)
-        log_server_action("run_skipped_lock_held", script_name=script_name, level="WARNING")
-        send_task_report(
-            script_name=script_name,
-            status="WARNING",
-            duration_seconds=time.monotonic() - started,
-            details=summary,
-            stats={"reason": "lock_held"},
-            level="WARNING",
-        )
-        return 0
+        LOGGER.warning("Exécution ignorée: une autre instance homonym.py est déjà en cours.")
+        return report_lock_unavailable(script_name, started, "homonym")
 
 
 def main() -> int:

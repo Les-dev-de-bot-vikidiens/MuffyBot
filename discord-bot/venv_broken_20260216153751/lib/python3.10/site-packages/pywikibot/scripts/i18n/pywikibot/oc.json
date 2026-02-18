@@ -1,0 +1,10 @@
+{
+	"@metadata": {
+		"authors": [
+			"Cedric31"
+		]
+	},
+	"pywikibot-bot-prefix": "Robot:",
+	"pywikibot-cosmetic-changes": "; cambiaments de tipe cosmetic",
+	"pywikibot-fixes-isbn": "Robot : Mesa en forma de l'ISBN"
+}

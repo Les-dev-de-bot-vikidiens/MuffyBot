@@ -1,0 +1,15 @@
+{
+	"@metadata": {
+		"authors": [
+			"Michawiki"
+		]
+	},
+	"pywikibot-bot-prefix": "Boćik:",
+	"pywikibot-cosmetic-changes": "; kosmetiske změny",
+	"pywikibot-enter-category-name": "Prošu zapodaj mjeno kategorije:",
+	"pywikibot-enter-finished-browser": "Tłóč zapodawansku tastu po skónčenju wobhladowaka.",
+	"pywikibot-enter-namespace-number": "Prošu zapodaj čisło mjenoweho ruma:",
+	"pywikibot-enter-new-text": "Proš zapodaj nowy tekst:",
+	"pywikibot-enter-page-processing": "Kotra strona ma so předźěłać?",
+	"pywikibot-fixes-isbn": "Boćik: ISBN so formatuje"
+}

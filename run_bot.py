@@ -9,6 +9,7 @@ from muffybot.discord import log_server_action, log_server_diagnostic, send_task
 from muffybot.env import load_dotenv
 from muffybot.tasks import categinex, daily_report, doctor, homonym, monthly_report, weekly_report, welcome
 from muffybot.tasks import envikidia_annual_pages, envikidia_sandboxreset, envikidia_weekly_talk
+from muffybot.tasks.vandalism_patterns import main as vandalism_patterns_main
 from muffybot.tasks.vandalism import main_en as vandalism_en_main
 from muffybot.tasks.vandalism import main_fr as vandalism_fr_main
 
@@ -18,6 +19,7 @@ TASKS = {
     "categinex": categinex.main,
     "vandalism-fr": vandalism_fr_main,
     "vandalism-en": vandalism_en_main,
+    "vandalism-patterns": vandalism_patterns_main,
     "daily-report": daily_report.main,
     "weekly-report": weekly_report.main,
     "monthly-report": monthly_report.main,

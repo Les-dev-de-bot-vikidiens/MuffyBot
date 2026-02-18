@@ -1,0 +1,22 @@
+{
+	"@metadata": {
+		"authors": [
+			"Esbardu",
+			"Xuacu"
+		]
+	},
+	"pywikibot-bot-prefix": "Robó:",
+	"pywikibot-cosmetic-changes": "; cambios cosméticos",
+	"pywikibot-enter-category-name": "Escribi'l nome de categoría:",
+	"pywikibot-enter-file-links-processing": "¿Qué enllaces a páxina de ficheru hai que procesar?",
+	"pywikibot-enter-finished-browser": "Calca la tecla Intro cuando acabes nel navegador.",
+	"pywikibot-enter-namespace-number": "Escribi un espaciu de nomes pol so númberu:",
+	"pywikibot-enter-new-text": "Escribi'l testu nuevu:",
+	"pywikibot-enter-page-processing": "¿Que páxina hai que procesar?",
+	"pywikibot-enter-xml-filename": "Escribi'l nome del ficheru XML de volcáu:",
+	"pywikibot-fixes-fckeditor": "Robó: Iguando HTML del editor de testu arriquecíu.",
+	"pywikibot-fixes-html": "Robó: convirtiendo/iguando HTML",
+	"pywikibot-fixes-isbn": "Bot: Dando formatu ISBN",
+	"pywikibot-fixes-syntax": "Robó: Iguando la sintaxis wiki",
+	"pywikibot-touch": "Edición de toque de Pywikibot"
+}

@@ -1,0 +1,20 @@
+{
+	"@metadata": {
+		"authors": [
+			"Jagwar"
+		]
+	},
+	"pywikibot-bot-prefix": "Rôbô:",
+	"pywikibot-cosmetic-changes": "; fanovana arak'endrika.",
+	"pywikibot-enter-category-name": "Atsofohy ny anaran-tsokajy:",
+	"pywikibot-enter-file-links-processing": "Ny rohin-drakitra hovaina?",
+	"pywikibot-enter-finished-browser": "Tsindrio \"ENTER\" rehefa tapitra ny fanovana ao amin'ny mpitety tranonkala.",
+	"pywikibot-enter-namespace-number": "Atsofohy eto ny laharan'ilay anaran-tsehatra",
+	"pywikibot-enter-new-text": "Mampidira lahatsoratra vaovao:",
+	"pywikibot-enter-page-processing": "Inona ny pejy hovaina?",
+	"pywikibot-enter-xml-filename": "Atsofohy ny rakitra dump XML",
+	"pywikibot-fixes-fckeditor": "Rôbô: Mamaha ny olan'ny mpanova HTML manan-karena",
+	"pywikibot-fixes-html": "Rôbô: Mamadika/Mamaha olana HTML",
+	"pywikibot-fixes-isbn": "Rôbô : manao formatage ny ISBN",
+	"pywikibot-fixes-syntax": "Rôbô: Manitsy rariteny wiki"
+}

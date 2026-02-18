@@ -1,0 +1,21 @@
+{
+	"@metadata": {
+		"authors": [
+			"Minh Nguyen"
+		]
+	},
+	"pywikibot-bot-prefix": "Bot:",
+	"pywikibot-cosmetic-changes": "; sửa cách trình bày",
+	"pywikibot-enter-category-name": "Xin vui lòng nhập tên thể loại:",
+	"pywikibot-enter-file-links-processing": "Nên xử lý các liên kết đến trang miêu tả tập tin nào?",
+	"pywikibot-enter-finished-browser": "Bấm Enter sau khi sửa đổi xong trong trình duyệt.",
+	"pywikibot-enter-namespace-number": "Xin vui lòng nhập số không gian tên:",
+	"pywikibot-enter-new-text": "Xin vui lòng nhập văn bản mới:",
+	"pywikibot-enter-page-processing": "Nên xử lý trang nào?",
+	"pywikibot-enter-xml-filename": "Xin vui lòng nhập tên tập tin của bản sao lưu XML:",
+	"pywikibot-fixes-fckeditor": "Bot: Sửa mã HTML của trình soạn thảo có định dạng",
+	"pywikibot-fixes-html": "Bot: Chuyển đổi/sửa HTML",
+	"pywikibot-fixes-isbn": "Bot: Định dạng ISBN",
+	"pywikibot-fixes-syntax": "Bot: Sửa cú pháp wiki",
+	"pywikibot-touch": "Pywikibot sửa đổi chạm"
+}

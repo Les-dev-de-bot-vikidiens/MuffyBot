@@ -1,0 +1,342 @@
+#!/usr/bin/env python3
+"""This script generates a family file from a given URL.
+
+This script must be invoked with the pwb wrapper script/code entry point.
+
+Usage::
+
+    pwb generate_family_file.py [<url>] [<name>] [<dointerwiki>] [<verify>]
+
+Parameters are optional. They must be given consecutively but may be
+omitted if there is no successor parameter. The parameters are::
+
+    <url>:         an url from where the family settings are loaded
+    <name>:        the family name without "_family.py" tail.
+    <dointerwiki>: predefined answer (y|s|n) to add multiple site codes
+    <verify>:      disable certificate validaton `(y|n)
+
+Example::
+
+    pwb generate_family_file.py https://www.mywiki.bogus/wiki/Main_Page mywiki
+
+This will create the file mywiki_family.py in families folder of your
+base directory.
+
+.. versionchanged:: 7.0
+   moved to pywikibot.scripts folder; create family files in families
+   folder of your base directory instead of pywikibot/families.
+.. versionchanged:: 8.1
+   [s]trict can be given for <dointerwiki> parameter to ensure that
+   sites are from the given domain.
+.. versionchanged:: 8.4
+   If the url scheme is missing, ``https`` will be used.
+"""
+#
+# (C) Pywikibot team, 2010-2025
+#
+# Distributed under the terms of the MIT license.
+#
+from __future__ import annotations
+
+import re
+import string
+import sys
+from contextlib import suppress
+from pathlib import Path
+from textwrap import fill
+from urllib.parse import urlparse, urlunparse
+
+
+# see pywikibot.family.py
+# Legal characters for Family name and Family langs keys
+NAME_CHARACTERS = string.ascii_letters + string.digits
+# nds_nl code alias requires "_"n
+# dash must be the last char to be reused as regex
+CODE_CHARACTERS = string.ascii_lowercase + string.digits + '_-'
+
+
+class FamilyFileGenerator:
+
+    """Family file creator object."""
+
+    def __init__(self,
+                 url: str | None = None,
+                 name: str | None = None,
+                 dointerwiki: str | None = None,
+                 verify: str | None = None) -> None:
+        """Parameters are optional. If missing the script asks for the values.
+
+        :param url: an url from where the family settings are loaded
+        :param name: the family name without "_family.py" tail.
+        :param dointerwiki: Predefined answer to add multiple site
+            codes. Pass `Y` or `y` for yes, `S` or `s` for strict which
+            only includes site of the same domain (usually for Wikimedia
+            sites), `N` or `n` for no and `E` or `e` if you want to edit
+            the collection of sites.
+        :param verify: If a certificate verification fails, you may pass
+            `Y` or `y` to disable certificate validaton `N` or `n` to
+            keep it enabled.
+        """
+        from pywikibot.scripts import _import_with_no_user_config
+
+        # from pywikibot.site_detect import MWSite and
+        # from pywikibot.config import base_dir
+        # when required but disable user-config checks
+        # so the family can be created first,
+        # and then used when generating the user-config
+        self.Wiki = _import_with_no_user_config(
+            'pywikibot.site_detect').site_detect.MWSite
+        self.base_dir = _import_with_no_user_config(
+            'pywikibot.config').config.base_dir
+
+        self.base_url = url
+        self.name = name
+        self.dointerwiki = dointerwiki
+        self.verify = verify
+
+        self.wikis = {}  # {'https://wiki/$1': Wiki('https://wiki/$1'), ...}
+        self.langs = []  # [Wiki('https://wiki/$1'), ...]
+
+    @staticmethod
+    def show(*args, **kwargs):
+        """Wrapper around print to be mocked in tests."""
+        print(*args, **kwargs)
+
+    def get_params(self) -> bool:
+        """Ask for parameters if necessary."""
+        if self.base_url is None:
+            with suppress(KeyboardInterrupt):
+                url = input('Please insert URL to wiki: ')
+            if not url:
+                return False
+            url = urlparse(url, 'https')
+            if not url.netloc and url.path:
+                self.base_url = urlunparse((url.scheme, url.path, url.netloc,
+                                            *url[3:]))
+            else:
+                self.base_url = urlunparse(url)
+
+        if self.name is None:
+            with suppress(KeyboardInterrupt):
+                self.name = input('Please insert a short name (eg: freeciv): ')
+            if not self.name:
+                return False
+
+        if any(x not in NAME_CHARACTERS for x in self.name):
+            self.show(f'ERROR: Name of family "{self.name}" must be ASCII'
+                      ' letters  and digits [a-zA-Z0-9]')
+            return False
+
+        return True
+
+    def get_wiki(self):
+        """Get wiki from base_url."""
+        import pywikibot
+        from pywikibot.exceptions import FatalServerError
+        pywikibot.info('Generating family file from ' + self.base_url)
+        for verify in (True, False):
+            try:
+                w = self.Wiki(self.base_url, verify=verify)
+            except FatalServerError:
+                pywikibot.exception()
+                pywikibot.info()
+                if not pywikibot.bot.input_yn(
+                    'Retry with disabled ssl certificate validation',
+                    default=self.verify, automatic_quit=False,
+                        force=self.verify is not None):
+                    break
+            else:
+                return w, verify
+        return None, None
+
+    def run(self) -> None:
+        """Main method, generate family file."""
+        if not self.get_params():
+            return
+
+        w, verify = self.get_wiki()
+        if w is None:
+            return
+
+        self.wikis[w.lang] = w
+        self.show('\n=================================='
+                  f'\nAPI url: {w.api}'
+                  f'\nMediaWiki version: {w.version}'
+                  '\n==================================\n')
+
+        self.getlangs(w)
+        self.getapis()
+        self.writefile(verify)
+
+    def getlangs(self, w) -> None:
+        """Determine site code of a family.
+
+        .. versionchanged:: 8.1
+           with [e]dit the interwiki list can be given delimited by
+           space or comma or both. With [s]trict only sites with the
+           same domain are collected. A [h]elp answer was added to show
+           more information about possible answers.
+        """
+        self.show('Determining other sites...', end='')
+        try:
+            self.langs = w.langs
+            self.show(fill(' '.join(sorted(wiki['prefix']
+                                           for wiki in self.langs))))
+        except Exception as e:
+            self.langs = []
+            self.show(e, '; continuing...')
+
+        if len([lang for lang in self.langs if lang['url'] == w.iwpath]) == 0:
+            if w.private_wiki:
+                w.lang = self.name
+            self.langs.append({'language': w.lang,
+                               'local': '',
+                               'prefix': w.lang,
+                               'url': w.iwpath})
+
+        code_len = len(self.langs)
+        if code_len > 1:
+            if self.dointerwiki is None:
+                while True:
+                    makeiw = input(
+                        '\n'
+                        f'There are {code_len} sites available.'
+                        ' Do you want to generate interwiki links?\n'
+                        'This might take a long time. '
+                        '([y]es, [s]trict, [N]o, [e]dit), [h]elp) ').lower()
+                    if makeiw in ('y', 's', 'n', 'e', ''):
+                        break
+                    self.show(
+                        '\n'
+                        '[y]es:    create interwiki links for all sites\n'
+                        '[s]trict: yes, but for sites with same domain only\n'
+                        '[N]o:     no, use the current site only (default)\n'
+                        '[e]dit:   get a list delimited with space or comma\n'
+                        '[h]elp:   this help message'
+                    )
+            else:
+                makeiw = self.dointerwiki
+
+            if makeiw in ('n', ''):
+                self.langs = [wiki for wiki in self.langs
+                              if wiki['url'] == w.iwpath]
+            elif makeiw == 's':
+                domain = '.'.join(urlparse(w.server).hostname.split('.')[1:])
+                self.langs = [wiki for wiki in self.langs
+                              if domain in wiki['url']]
+
+            elif makeiw == 'e':
+                for wiki in self.langs:
+                    self.show(wiki['prefix'], wiki['url'])
+                do_langs = re.split(' *,| +',
+                                    input('Which sites do you want: '))
+                self.langs = [wiki for wiki in self.langs
+                              if wiki['prefix'] in do_langs
+                              or wiki['url'] == w.iwpath]
+
+        for wiki in self.langs:
+            assert all(x in CODE_CHARACTERS for x in wiki['prefix']), \
+                'Family {} code {} must be ASCII lowercase ' \
+                'letters and digits [a-z0-9] or underscore/dash [_-]' \
+                .format(self.name, wiki['prefix'])
+
+    def getapis(self) -> None:
+        """Load other site pages."""
+        self.show(f'Loading {len(self.langs)} wikis... ')
+        remove = []
+        for lang in self.langs:
+            key = lang['prefix']
+            self.show(f'  * {key}... ', end='')
+            if key not in self.wikis:
+                try:
+                    self.wikis[key] = self.Wiki(lang['url'])
+                    self.show('downloaded')
+                except Exception as e:
+                    self.show(e)
+                    remove.append(lang)
+            else:
+                self.show('in cache')
+
+        for lang in remove:
+            self.langs.remove(lang)
+
+    def writefile(self, verify) -> None:
+        """Write the family file."""
+        fp = Path(self.base_dir, 'families', f'{self.name}_family.py')
+        self.show(f'Writing {fp}... ')
+
+        if fp.exists() and input(
+                f'{fp} already exists. Overwrite? (y/n) ').lower() == 'n':
+            self.show('Terminating.')
+            sys.exit(1)
+
+        code_hostname_pairs = '\n        '.join(
+            f"'{k}': '{urlparse(w.server).netloc}',"
+            for k, w in self.wikis.items())
+
+        code_path_pairs = '\n            '.join(
+            f"'{k}': '{w.scriptpath}',"
+            for k, w in self.wikis.items())
+
+        code_protocol_pairs = '\n            '.join(
+            f"'{k}': '{urlparse(w.server).scheme}',"
+            for k, w in self.wikis.items())
+
+        content = family_template % {
+            'url': self.base_url, 'name': self.name,
+            'code_hostname_pairs': code_hostname_pairs,
+            'code_path_pairs': code_path_pairs,
+            'code_protocol_pairs': code_protocol_pairs}
+        if not verify:
+            # assuming this is the same for all codes
+            content += """
+
+    def verify_SSL_certificate(self, code: str) -> bool:
+        return False
+"""
+        fp.parent.mkdir(parents=True, exist_ok=True)
+        fp.write_text(content, encoding='utf-8')
+
+
+family_template = """\
+\"\"\"
+This family file was auto-generated by generate_family_file.py script.
+
+Configuration parameters:
+  url = %(url)s
+  name = %(name)s
+
+Please do not commit this to the Git repository!
+\"\"\"
+from pywikibot import family
+
+
+class Family(family.Family):  # noqa: D101
+
+    name = '%(name)s'
+    langs = {
+        %(code_hostname_pairs)s
+    }
+
+    def scriptpath(self, code):
+        return {
+            %(code_path_pairs)s
+        }[code]
+
+    def protocol(self, code):
+        return {
+            %(code_protocol_pairs)s
+        }[code]
+"""
+
+
+def main() -> None:
+    """Process command line arguments and generate a family file."""
+    if len(sys.argv) > 1 and sys.argv[1] == '-help':
+        print(__doc__)
+    else:
+        FamilyFileGenerator(*sys.argv[1:]).run()
+
+
+if __name__ == '__main__':
+    main()

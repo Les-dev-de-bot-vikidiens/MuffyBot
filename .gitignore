@@ -26,8 +26,19 @@ pages_traitees.txt
 processed_pages.json
 metrics.json
 vandalism_db.json
+vandalism_checkpoint.json
+vandalism_quarantine.json
+vandalism_common_patterns.txt
+vandalism_detection_regex.txt
+vandalism_intel.sqlite3
+vandalism_pattern_validation.json
+vandalism_rule_drift_report.txt
+vandalism_rule_stats.json
+vandalism_false_positive_whitelist.json
 envikidia/processed_pages.json
 envikidia/vandalism_db.json
+envikidia/vandalism_checkpoint.json
+envikidia/vandalism_quarantine.json
 
 # ===== Divers =====
 __pycache__/

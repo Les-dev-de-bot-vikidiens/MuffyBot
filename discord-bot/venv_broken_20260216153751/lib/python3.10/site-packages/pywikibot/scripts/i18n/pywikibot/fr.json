@@ -1,0 +1,31 @@
+{
+	"@metadata": {
+		"authors": [
+			"Boniface",
+			"Derugon",
+			"Gomoko",
+			"Orikrin1998",
+			"Romainhk",
+			"Sherbrooke",
+			"Tavernier",
+			"Thibaut120094",
+			"Urhixidur",
+			"Verdy p",
+			"Wladek92"
+		]
+	},
+	"pywikibot-bot-prefix": "Robot :",
+	"pywikibot-cosmetic-changes": "; changements cosmétiques",
+	"pywikibot-enter-category-name": "Veuillez saisir le nom de la catégorie :",
+	"pywikibot-enter-file-links-processing": "Liens vers la page de fichier qu’il faudrait traiter ?",
+	"pywikibot-enter-finished-browser": "Appuyez sur Entrée une fois que vous avez fini dans le navigateur.",
+	"pywikibot-enter-namespace-number": "Veuillez entrer un espace de noms par son numéro :",
+	"pywikibot-enter-new-text": "Veuillez entrer le nouveau texte :",
+	"pywikibot-enter-page-processing": "Quelle page faut-il traiter ?",
+	"pywikibot-enter-xml-filename": "Veuillez entrer le nom du fichier d'extraction XML :",
+	"pywikibot-fixes-fckeditor": "Robot : correction du HTML de l’éditeur riche",
+	"pywikibot-fixes-html": "Robot : conversion/correction du HTML",
+	"pywikibot-fixes-isbn": "Robot : mise en forme du numéro ISBN",
+	"pywikibot-fixes-syntax": "Robot : correction de la syntaxe wiki",
+	"pywikibot-touch": "Modification nulle par Pywikibot"
+}

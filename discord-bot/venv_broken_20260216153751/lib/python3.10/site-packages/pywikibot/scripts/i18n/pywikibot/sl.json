@@ -1,0 +1,24 @@
+{
+	"@metadata": {
+		"authors": [
+			"Dbc334",
+			"Eleassar",
+			"Irena Plahuta",
+			"Mateju"
+		]
+	},
+	"pywikibot-bot-prefix": "Bot:",
+	"pywikibot-cosmetic-changes": "; oblikovne spremembe",
+	"pywikibot-enter-category-name": "Prosimo, vnesite ime kategorije:",
+	"pywikibot-enter-file-links-processing": "Povezava do katere strani datoteke naj bo obdelana?",
+	"pywikibot-enter-finished-browser": "Ko končate v brskalniku, pritisnite vnašalko (Enter).",
+	"pywikibot-enter-namespace-number": "Prosimo, vnesite številko imenskega prostora.",
+	"pywikibot-enter-new-text": "Prosimo, vnesite novo besedilo:",
+	"pywikibot-enter-page-processing": "Katera stran naj bo obdelana?",
+	"pywikibot-enter-xml-filename": "Prosimo, vstavite XML ime shranjene datoteke.",
+	"pywikibot-fixes-fckeditor": "Bot: Popravljanje HTML-ja urejevalnika",
+	"pywikibot-fixes-html": "Bot: Pretvorba/popravljanje HTML",
+	"pywikibot-fixes-isbn": "Robot: Oblikovanje ISBN",
+	"pywikibot-fixes-syntax": "Bot: Popravljanje wikiskladnje",
+	"pywikibot-touch": "Ničelno urejanje Pywikibota"
+}

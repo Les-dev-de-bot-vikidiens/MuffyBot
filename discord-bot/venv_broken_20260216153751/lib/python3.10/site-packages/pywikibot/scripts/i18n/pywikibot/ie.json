@@ -1,0 +1,10 @@
+{
+	"@metadata": {
+		"authors": [
+			"Renan"
+		]
+	},
+	"pywikibot-bot-prefix": "Machine:",
+	"pywikibot-cosmetic-changes": "; changes cosmetic",
+	"pywikibot-fixes-isbn": "Machine: Formatant ISBN"
+}
