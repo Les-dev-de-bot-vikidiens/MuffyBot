@@ -48,8 +48,10 @@ __pycache__/
 .env
 .env.*
 !.env.example
+.env.test
 config.py
 !config.example.py
+config.test.py
 *.pem
 *.key
 *.p12
@@ -57,6 +59,7 @@ config.py
 *~
 *.swp
 Nouveau Document texte.txt
+.venv-test/
 
 # ===== Discord bot runtime/sensibles =====
 discord-bot/token.txt
