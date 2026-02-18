@@ -175,3 +175,10 @@ Variables optionnelles:
 
 - `MUFFY_DASHBOARD_HOST` (defaut `127.0.0.1`)
 - `MUFFY_DASHBOARD_PORT` (defaut `8765`)
+
+## Healthcheck Pywikibot (Uptime Kuma)
+
+Le bot anti-vandalisme Pywikibot expose un endpoint local dedie:
+
+- URL: `http://127.0.0.1:8798/healthz`
+- variables: `PYWIKIBOT_HEALTH_ENABLE` (`1/0`), `PYWIKIBOT_HEALTH_HOST` (defaut `127.0.0.1`), `PYWIKIBOT_HEALTH_PORT` (defaut `8798`)
