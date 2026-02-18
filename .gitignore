@@ -60,6 +60,7 @@ discord-bot/run_logs/
 discord-bot/apicache/
 discord-bot/__pycache__/
 discord-bot/venv/
+discord-bot/venv_broken_*/
 discord-bot/user-config.py
 discord-bot/user-password.py
 discord-bot/throttle.ctrl

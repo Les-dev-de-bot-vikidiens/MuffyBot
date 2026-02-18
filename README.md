@@ -89,3 +89,36 @@ Important:
 ## Cron
 
 Voir `CRONTAB.example`.
+
+## Auto-push securise (systemd)
+
+Un auto-push est disponible via `systemd --user`, avec protections anti-erreur/secrets.
+
+Installation:
+
+```bash
+chmod +x scripts/safe_autopush.sh scripts/install_autopush_systemd.sh scripts/uninstall_autopush_systemd.sh
+./scripts/install_autopush_systemd.sh
+```
+
+Desinstallation:
+
+```bash
+./scripts/uninstall_autopush_systemd.sh
+```
+
+Comportement:
+
+- verification toutes les ~20 secondes
+- commit auto uniquement des fichiers suivis par Git (`git commit -am ...`)
+- blocage si des fichiers non suivis et non ignores existent (ex: tu as cree un fichier sensible avant de l'ajouter au `.gitignore`)
+- blocage si des chemins sensibles sont modifies (`config.py`, `user-password.py`, `*.sqlite*`, `discord-bot/venv/*`, etc.)
+- blocage si un motif de secret connu apparait dans les lignes ajoutees
+- push auto uniquement si la branche locale est en avance
+
+Logs:
+
+```bash
+journalctl --user -u muffybot-autopush.service -f
+tail -f ~/.local/state/muffybot-autopush/autopush.log
+```
