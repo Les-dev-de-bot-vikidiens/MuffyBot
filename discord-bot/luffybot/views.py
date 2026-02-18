@@ -1382,7 +1382,7 @@ class OpPanelView(discord.ui.View):
         ]
         if running:
             lines.extend(
-                f"- run_id={item.run_id} `{item.script_key}` pid={item.process.pid} retry={item.retry_index} prio={item.priority}"
+                f"- run_id={item.run_id} `{item.script_key}` pid={item.process.pid} retry={item.retry_index} prio={item.priority} target={item.target_label or '-'}"
                 for item in running[:12]
             )
         else:
@@ -1390,7 +1390,7 @@ class OpPanelView(discord.ui.View):
         lines.append("QUEUE:")
         if queue:
             lines.extend(
-                f"- queue_id={item.queue_id} `{item.script_key}` prio={item.priority} retry={item.retry_index} by={item.requester_id}"
+                f"- queue_id={item.queue_id} `{item.script_key}` prio={item.priority} retry={item.retry_index} by={item.requester_id} target={item.target_label or '-'}"
                 for item in queue[:20]
             )
         else:
@@ -1415,13 +1415,13 @@ class OpPanelView(discord.ui.View):
         out_file.write_text(payload, encoding="utf-8")
         await respond_ephemeral(interaction, "Tail server logs:", file=discord.File(str(out_file), filename=out_file.name))
 
-    @discord.ui.button(label="Undo User", style=discord.ButtonStyle.danger, row=2)
+    @discord.ui.button(label="Undo User", style=discord.ButtonStyle.danger, row=1)
     async def undo_user_btn(self, button: discord.ui.Button, interaction: discord.Interaction) -> None:
         if not await ensure_owner_interaction(interaction):
             return
         await interaction.response.send_modal(OpUndoModal())
 
-    @discord.ui.button(label="Undo Approvals", style=discord.ButtonStyle.primary, row=2)
+    @discord.ui.button(label="Undo Approvals", style=discord.ButtonStyle.primary, row=1)
     async def undo_approvals_btn(self, button: discord.ui.Button, interaction: discord.Interaction) -> None:
         if not await ensure_owner_interaction(interaction):
             return
