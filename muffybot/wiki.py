@@ -6,10 +6,13 @@ from pathlib import Path
 
 import pywikibot
 
+from .healthcheck import ensure_started
+
 
 def prepare_runtime(workdir: Path) -> None:
     workdir.mkdir(parents=True, exist_ok=True)
     os.chdir(workdir)
+    ensure_started()
 
 
 def connect_site(lang: str, family: str = "vikidia") -> pywikibot.Site:
