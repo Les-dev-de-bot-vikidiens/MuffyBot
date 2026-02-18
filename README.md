@@ -128,3 +128,50 @@ Logs:
 journalctl --user -u muffybot-autopush.service -f
 tail -f ~/.local/state/muffybot-autopush/autopush.log
 ```
+
+## Environnement de test
+
+Creer un venv de test + fichiers de config de test:
+
+```bash
+chmod +x scripts/setup_test_env.sh
+./scripts/setup_test_env.sh
+source .venv-test/bin/activate
+```
+
+Le script cree:
+
+- `.venv-test/`
+- `config.test.py` (copie de `config.example.py` si absent)
+- `.env.test` (fichier optionnel pour variables de test)
+
+## Branche Git de test (worktree)
+
+Creer une branche de test isolee dans un autre dossier:
+
+```bash
+chmod +x scripts/setup_test_worktree.sh
+./scripts/setup_test_worktree.sh test/sandbox ../pywikibot-scripts-test
+```
+
+Resultat:
+
+- branche locale `test/sandbox`
+- worktree separe `../pywikibot-scripts-test`
+
+## Dashboard leger
+
+Dashboard HTTP sans dependance externe (status Git, timer auto-push, rapports de taches, logs auto-push):
+
+```bash
+python3 dashboard.py
+```
+
+Puis ouvrir:
+
+- `http://127.0.0.1:8765`
+
+Variables optionnelles:
+
+- `MUFFY_DASHBOARD_HOST` (defaut `127.0.0.1`)
+- `MUFFY_DASHBOARD_PORT` (defaut `8765`)
