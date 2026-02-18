@@ -1427,6 +1427,30 @@ class OpPanelView(discord.ui.View):
             return
         await interaction.response.send_modal(UndoApprovalsModal())
 
+    @discord.ui.button(label="Restart Bot Service", style=discord.ButtonStyle.danger, row=1)
+    async def restart_bot_service_btn(self, button: discord.ui.Button, interaction: discord.Interaction) -> None:
+        if not await ensure_owner_interaction(interaction):
+            return
+
+        await interaction.response.defer(ephemeral=True)
+        rc, output = await run_systemd_action("restart", "luffybot.service")
+        audit(
+            interaction.user.id,
+            "panel_op_restart_bot_service",
+            "luffybot.service",
+            f"rc={rc}",
+            guild_id=interaction.guild_id,
+            channel_id=interaction.channel_id,
+        )
+
+        summary = f"systemctl restart luffybot.service -> rc={rc}"
+        if len(output) > 1600:
+            out_file = config.RUN_LOG_DIR / f"systemctl_luffybot_restart_{int(utc_now().timestamp())}.txt"
+            out_file.write_text(output, encoding="utf-8")
+            await interaction.followup.send(summary, ephemeral=True, file=discord.File(str(out_file), filename=out_file.name))
+        else:
+            await interaction.followup.send(f"{summary}\n```\n{output[-1500:]}\n```", ephemeral=True)
+
     @discord.ui.button(label="Config", style=discord.ButtonStyle.secondary, row=3)
     async def config_btn(self, button: discord.ui.Button, interaction: discord.Interaction) -> None:
         if not await ensure_owner_interaction(interaction):
