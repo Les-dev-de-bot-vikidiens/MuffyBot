@@ -44,6 +44,30 @@ from .storage import (
 from .utils import fmt_duration, memory_used_percent, read_tail, utc_now
 
 
+def _parse_int_ids_csv(raw: str) -> set[int]:
+    cleaned = (raw or "").replace(";", ",").replace(" ", ",")
+    ids: set[int] = set()
+    for part in cleaned.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        try:
+            ids.add(int(part))
+        except ValueError:
+            continue
+    return ids
+
+
+def undo_approved_ids() -> set[int]:
+    return _parse_int_ids_csv(get_setting("undo_approved_discord_ids", ""))
+
+
+def is_undo_allowed_for_user(discord_user_id: int) -> bool:
+    if int(discord_user_id) == int(config.OWNER_USER_ID):
+        return True
+    return int(discord_user_id) in undo_approved_ids()
+
+
 def build_public_panel_embed() -> discord.Embed:
     maintenance = get_setting_bool("maintenance_mode", False)
     public_enabled = get_setting_bool("public_start_enabled", True)
@@ -77,7 +101,8 @@ def build_public_panel_embed() -> discord.Embed:
     embed = discord.Embed(title="Panneau Public Scripts", color=0x3498DB, timestamp=utc_now())
     embed.description = (
         f"Maintenance: `{'ON' if maintenance else 'OFF'}` | Start public: `{'ON' if public_enabled else 'OFF'}` | Dry-run: `{'ON' if dry_run else 'OFF'}`\n"
-        f"Parallel: `{len(config.RUNNING_SCRIPTS)}/{max_parallel}` | Queue: `{len(config.RUN_QUEUE)}` | Cooldown: `{cooldown}s`"
+        f"Parallel: `{len(config.RUNNING_SCRIPTS)}/{max_parallel}` | Queue: `{len(config.RUN_QUEUE)}` | Cooldown: `{cooldown}s`\n"
+        "Action Undo utilisateur: reservee aux utilisateurs Discord approuves."
     )
     embed.add_field(
         name="Ressources",
@@ -101,6 +126,7 @@ def build_op_panel_embed() -> discord.Embed:
     cooldown = get_setting_int("public_cooldown_seconds", 120, min_value=0, max_value=3600)
     retries = get_setting_int("max_auto_retries", 1, min_value=0, max_value=5)
     backoff = get_setting_int("retry_backoff_seconds", 45, min_value=5, max_value=3600)
+    approved_undo_count = len(undo_approved_ids())
 
     state = get_setting("presence_state", "online")
     mode = get_setting("presence_mode", "watching")
@@ -112,6 +138,7 @@ def build_op_panel_embed() -> discord.Embed:
         f"Maintenance: `{'ON' if maintenance else 'OFF'}` | Public start: `{'ON' if public_enabled else 'OFF'}` | Dry-run: `{'ON' if dry_run else 'OFF'}`\n"
         f"Parallel: `{len(config.RUNNING_SCRIPTS)}/{max_parallel}` | Queue: `{len(config.RUN_QUEUE)}` | Cooldown public: `{cooldown}s`\n"
         f"Retry: `{retries}` (backoff `{backoff}s`)\n"
+        f"Undo approuves: `{approved_undo_count}`\n"
         f"Presence: `{state}` `{mode}` text=`{text[:80]}`"
     )
     return embed
