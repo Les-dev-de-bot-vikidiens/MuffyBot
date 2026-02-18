@@ -6,10 +6,12 @@ import json
 import logging
 import re
 import sqlite3
+import threading
 import time
 from collections import defaultdict, deque
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -106,6 +108,103 @@ class DynamicRule:
     status: str = "active"
     support: int = 0
     precision: float = 0.0
+
+
+@dataclass
+class HealthState:
+    script_name: str
+    lang: str
+    started_monotonic: float = field(default_factory=time.monotonic)
+    run_started_monotonic: float = field(default_factory=time.monotonic)
+    running: bool = True
+    last_status: str = "running"
+    last_error: str = ""
+    last_changes_prefetched: int = 0
+    state_lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
+
+    def set_prefetched(self, total: int) -> None:
+        with self.state_lock:
+            self.last_changes_prefetched = max(0, int(total))
+
+    def finish(self, *, status: str, error: str = "") -> None:
+        with self.state_lock:
+            self.running = False
+            self.last_status = status
+            self.last_error = error[:500]
+
+    def snapshot(self) -> dict[str, object]:
+        with self.state_lock:
+            return {
+                "status": self.last_status,
+                "running": self.running,
+                "script_name": self.script_name,
+                "lang": self.lang,
+                "last_error": self.last_error,
+                "last_changes_prefetched": self.last_changes_prefetched,
+                "uptime_seconds": round(time.monotonic() - self.started_monotonic, 3),
+                "run_elapsed_seconds": round(time.monotonic() - self.run_started_monotonic, 3),
+            }
+
+
+class _HealthHTTPServer(ThreadingHTTPServer):
+    daemon_threads = True
+    allow_reuse_address = True
+
+    def __init__(self, host: str, port: int, state: HealthState) -> None:
+        super().__init__((host, port), _HealthHandler)
+        self.state = state
+
+
+class _HealthHandler(BaseHTTPRequestHandler):
+    server: _HealthHTTPServer
+
+    def do_GET(self) -> None:  # noqa: N802
+        parsed = urlparse(self.path)
+        if parsed.path not in {"/healthz", "/health"}:
+            self.send_error(404, "Not found")
+            return
+
+        payload = self.server.state.snapshot()
+        code = 200 if payload.get("status") in {"running", "success"} else 503
+        data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        self.send_response(code)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
+
+    def log_message(self, fmt: str, *args: object) -> None:
+        return
+
+
+@dataclass
+class HealthServer:
+    server: _HealthHTTPServer
+    thread: threading.Thread
+
+    def stop(self) -> None:
+        self.server.shutdown()
+        self.server.server_close()
+        self.thread.join(timeout=2.0)
+
+
+def _health_enabled(config: VandalismConfig) -> bool:
+    raw = (get_env("PYWIKIBOT_HEALTH_ENABLE") or "").strip().lower()
+    if raw:
+        return raw in {"1", "true", "yes", "on"}
+    return config.lang == "fr"
+
+
+def _start_health_server(config: VandalismConfig, state: HealthState) -> HealthServer | None:
+    if not _health_enabled(config):
+        return None
+    host = (get_env("PYWIKIBOT_HEALTH_HOST", "127.0.0.1") or "127.0.0.1").strip() or "127.0.0.1"
+    port = max(1, min(get_int_env("PYWIKIBOT_HEALTH_PORT", 8798), 65535))
+    server = _HealthHTTPServer(host, port, state)
+    thread = threading.Thread(target=server.serve_forever, name=f"vandalism-health-{config.lang}", daemon=True)
+    thread.start()
+    LOGGER.info("Healthcheck Pywikibot actif: http://%s:%s/healthz", host, port)
+    return HealthServer(server=server, thread=thread)
 
 
 FR_CONFIG = VandalismConfig(
@@ -874,8 +973,10 @@ def _should_skip_change(
 
 def run(config: VandalismConfig) -> int:
     started = time.monotonic()
+    health_state = HealthState(script_name=config.script_name, lang=config.lang)
     load_dotenv()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s")
+    health_server = _start_health_server(config, health_state)
     lock_name = f"vandalism-{config.lang}"
     try:
         with hold_lock(lock_name):
@@ -923,6 +1024,7 @@ def run(config: VandalismConfig) -> int:
             review_dynamic_rules = len(dynamic_rules) - active_dynamic_rules
             intel_conn = _open_intel_db()
             changes = list(site.recentchanges(total=config.max_changes, changetype="edit"))
+            health_state.set_prefetched(len(changes))
             user_burst_map = _compute_user_burst_map(changes, window_minutes=burst_window_minutes)
 
             max_seen_ts = checkpoint_last_ts
@@ -1438,9 +1540,17 @@ def run(config: VandalismConfig) -> int:
             )
             if intel_conn is not None:
                 intel_conn.close()
+            health_state.finish(status="success")
             return 0
     except LockUnavailableError:
+        health_state.finish(status="lock_unavailable", error="lock_unavailable")
         return report_lock_unavailable(config.script_name, started, lock_name)
+    except Exception as exc:
+        health_state.finish(status="failed", error=str(exc))
+        raise
+    finally:
+        if health_server is not None:
+            health_server.stop()
 
 
 def main_fr() -> int:
