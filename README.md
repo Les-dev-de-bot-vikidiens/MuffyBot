@@ -9,6 +9,8 @@ Scripts Pywikibot pour Vikidia (fr/en) avec architecture modulaire.
 - `welcome.py`, `homonym.py`, `categinex.py`, `vandalism.py`, `vandalism_patterns.py`: wrappers de compatibilité
 - `daily_bot_logs.py`: publie `bot.logs` (racine) vers le webhook Discord serveur
 - `config_backup.py`: backup quotidien de la config runtime (`logs/config_backups/`)
+- `ml_collect_train.py`: collecte FR/EN + entraînement ML anti-vandalisme
+- `ml_eval.py`: évaluation offline du modèle ML sauvegardé
 - `envikidia/*.py`: wrappers de compatibilité pour le wiki anglais
 - `run_bot.py`: point d'entrée unique optionnel
 
@@ -24,6 +26,8 @@ python3 run_bot.py daily-bot-logs
 python3 run_bot.py weekly-report
 python3 run_bot.py monthly-report
 python3 run_bot.py config-backup
+python3 run_bot.py ml-collect-train
+python3 run_bot.py ml-eval
 python3 run_bot.py doctor
 ```
 
@@ -85,6 +89,15 @@ python3 run_bot.py doctor
 - `HUMAN_REVERT_MAX_DIFFS_PER_LANG` (nombre max de diffs extraits par langue à chaque run, défaut `250`)
 - `HUMAN_REVERT_MAX_CORPUS_ENTRIES` (taille max du corpus humain persistant, défaut `50000`)
 - `HUMAN_REVERT_CORPUS_RETENTION_DAYS` (rétention des entrées corpus, défaut `120`)
+- `ML_ENABLE` (`1/0`, active l'assistance ML en runtime)
+- `ML_MODEL_DIR` (défaut `models`)
+- `ML_DATA_DIR` (défaut `models/data`)
+- `ML_MIN_TRAIN_SAMPLES` (minimum d'échantillons pour entraîner)
+- `ML_MAX_RC_PER_LANG` (`0` = max possible, avec garde-fou `ML_MAX_RC_HARD_CAP`)
+- `ML_MAX_RC_HARD_CAP` (borne de sécurité quand `ML_MAX_RC_PER_LANG=0`)
+- `ML_ASSIST_WEIGHT` (poids du score ML dans le score assisté, défaut `0.25`)
+- `ML_SHADOW_LOG_ONLY` (réservé pour rollout futur)
+- `ML_RICH_CONSOLE` (`1` pour rendu console premium Rich)
 - `VAULT_ENABLE` (`1` pour activer le chargement secrets Vault)
 - `VAULT_SECRETS_FILE` (fichier env injecté par Vault Agent, optionnel)
 - `VAULT_ADDR`, `VAULT_TOKEN`, `VAULT_KV_MOUNT`, `VAULT_SECRET_PATH`, `VAULT_TIMEOUT_SECONDS` (accès direct KV v2)
@@ -96,6 +109,7 @@ Important:
 - Les actions serveur sont aussi historisées localement (`SERVER_ACTIONS_FILE`) avec rotation.
 - En cas de panne temporaire Discord, les notifications sont mises en file d'attente dans `logs/discord_queue.json`.
 - Les logs Python sont centralisés dans `bot.logs` (racine), avec rotation quotidienne.
+- Les artefacts ML sont générés localement dans `models/` (non versionnés Git).
 - `kill switch`: créer `control/kill.switch` pour bloquer les lancements et arrêter les runs via le panel OP; supprimer le fichier pour réactiver.
 - `maintenance mode`: créer `control/maintenance.mode` pour bloquer les runs non autorisés; supprimer le fichier pour sortir de maintenance.
 - Le script `vandalism_patterns.py` génère `vandalism_common_patterns.txt`, `vandalism_detection_regex.txt`, `vandalism_pattern_validation.json`, `vandalism_rule_drift_report.txt` et `vandalism_false_positive_whitelist.json`.
