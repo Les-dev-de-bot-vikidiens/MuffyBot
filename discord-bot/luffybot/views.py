@@ -73,7 +73,8 @@ def is_undo_allowed_for_user(discord_user_id: int) -> bool:
 
 
 def build_public_panel_embed() -> discord.Embed:
-    maintenance = get_setting_bool("maintenance_mode", False)
+    maintenance = maintenance_mode_enabled()
+    kill_switch = kill_switch_enabled()
     public_enabled = get_setting_bool("public_start_enabled", True)
     dry_run = dry_run_enabled()
     max_parallel = get_setting_int("max_parallel_runs", 4, min_value=1, max_value=20)
@@ -106,7 +107,7 @@ def build_public_panel_embed() -> discord.Embed:
 
     embed = discord.Embed(title="Panneau Public Scripts", color=0x3498DB, timestamp=utc_now())
     embed.description = (
-        f"Maintenance: `{'ON' if maintenance else 'OFF'}` | Start public: `{'ON' if public_enabled else 'OFF'}` | Dry-run: `{'ON' if dry_run else 'OFF'}`\n"
+        f"Kill switch: `{'ON' if kill_switch else 'OFF'}` | Maintenance: `{'ON' if maintenance else 'OFF'}` | Start public: `{'ON' if public_enabled else 'OFF'}` | Dry-run: `{'ON' if dry_run else 'OFF'}`\n"
         f"Parallel: `{len(config.RUNNING_SCRIPTS)}/{max_parallel}` | Queue: `{len(config.RUN_QUEUE)}` | Cooldown: `{cooldown}s`\n"
         "Action Undo utilisateur: reservee aux utilisateurs Discord approuves."
     )
@@ -125,7 +126,8 @@ def build_public_panel_embed() -> discord.Embed:
 
 
 def build_op_panel_embed() -> discord.Embed:
-    maintenance = get_setting_bool("maintenance_mode", False)
+    maintenance = maintenance_mode_enabled()
+    kill_switch = kill_switch_enabled()
     public_enabled = get_setting_bool("public_start_enabled", True)
     dry_run = dry_run_enabled()
     max_parallel = get_setting_int("max_parallel_runs", 4, min_value=1, max_value=20)
@@ -141,7 +143,7 @@ def build_op_panel_embed() -> discord.Embed:
     embed = discord.Embed(title="Panneau OP (ephemere)", color=0xE67E22, timestamp=utc_now())
     embed.description = (
         f"Owner ID: `{config.OWNER_USER_ID}`\n"
-        f"Maintenance: `{'ON' if maintenance else 'OFF'}` | Public start: `{'ON' if public_enabled else 'OFF'}` | Dry-run: `{'ON' if dry_run else 'OFF'}`\n"
+        f"Kill switch: `{'ON' if kill_switch else 'OFF'}` | Maintenance: `{'ON' if maintenance else 'OFF'}` | Public start: `{'ON' if public_enabled else 'OFF'}` | Dry-run: `{'ON' if dry_run else 'OFF'}`\n"
         f"Parallel: `{len(config.RUNNING_SCRIPTS)}/{max_parallel}` | Queue: `{len(config.RUN_QUEUE)}` | Cooldown public: `{cooldown}s`\n"
         f"Retry: `{retries}` (backoff `{backoff}s`)\n"
         f"Undo approuves: `{approved_undo_count}`\n"
@@ -193,7 +195,10 @@ class PublicStartSelect(discord.ui.Select):
     async def callback(self, interaction: discord.Interaction) -> None:
         script = self.values[0]
 
-        if get_setting_bool("maintenance_mode", False):
+        if kill_switch_enabled():
+            await respond_ephemeral(interaction, "Kill switch actif: demarrage bloque.")
+            return
+        if maintenance_mode_enabled():
             await respond_ephemeral(interaction, "Mode maintenance actif: demarrage public desactive.")
             return
         if not get_setting_bool("public_start_enabled", True):
@@ -620,11 +625,14 @@ class OpStopSelect(discord.ui.Select):
 class OpServiceSelect(discord.ui.Select):
     def __init__(self) -> None:
         options: list[discord.SelectOption] = [
+            discord.SelectOption(label="toggle kill switch", value="meta|toggle_kill_switch"),
             discord.SelectOption(label="toggle maintenance", value="meta|toggle_maintenance"),
             discord.SelectOption(label="toggle public start", value="meta|toggle_public_start"),
             discord.SelectOption(label="toggle dry-run", value="meta|toggle_dry_run"),
             discord.SelectOption(label="clear queue", value="meta|clear_queue"),
             discord.SelectOption(label="digest now", value="meta|digest_now"),
+            discord.SelectOption(label="publish bot.logs now", value="meta|daily_bot_logs_now"),
+            discord.SelectOption(label="backup config now", value="meta|config_backup_now"),
             discord.SelectOption(label="undo user (modal)", value="meta|undo_user_modal"),
             discord.SelectOption(label="undo approvals (modal)", value="meta|undo_approvals_modal"),
             discord.SelectOption(label="restart bot service", value="meta|restart_bot_service"),
