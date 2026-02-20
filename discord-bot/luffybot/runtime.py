@@ -1061,6 +1061,9 @@ async def housekeeping_loop() -> None:
         now_mono = asyncio.get_running_loop().time()
 
         try:
+            if kill_switch_enabled() and config.RUNNING_SCRIPTS:
+                await stop_all_scripts("Kill switch actif (housekeeping)")
+
             if now_mono - last_presence >= 8.0:
                 await apply_presence()
                 last_presence = now_mono
