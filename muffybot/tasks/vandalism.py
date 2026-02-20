@@ -1407,6 +1407,9 @@ def run(config: VandalismConfig) -> int:
                                 },
                             )
 
+                    if confidence_ml is not None:
+                        ml_scores_seen.append(float(confidence_ml))
+
                     _update_metrics(metrics, action, confidence if action == "reverted" else None)
                     if action != "reverted":
                         log_server_action(
@@ -1562,6 +1565,7 @@ def run(config: VandalismConfig) -> int:
 
             confidences = metrics.get("confidences", [])
             average_confidence = sum(confidences) / len(confidences) if confidences else 0.0
+            average_ml_score = sum(ml_scores_seen) / len(ml_scores_seen) if ml_scores_seen else 0.0
 
             summary = (
                 f"Analyse terminée - reverts session: {reverted_this_run} | "
@@ -1570,7 +1574,8 @@ def run(config: VandalismConfig) -> int:
                 f"total: {metrics.get('total_analyzed', 0)} | "
                 f"reverts cumulés: {metrics.get('reverted', 0)} | "
                 f"erreurs: {metrics.get('errors', 0)} | "
-                f"confiance moyenne: {average_confidence * 100:.1f}%"
+                f"confiance moyenne: {average_confidence * 100:.1f}% | "
+                f"score ML moyen: {average_ml_score * 100:.1f}%"
             )
             log_to_discord(summary, level="INFO", script_name=config.script_name)
             log_server_action(
@@ -1586,6 +1591,8 @@ def run(config: VandalismConfig) -> int:
                     "reverts_total": int(metrics.get("reverted", 0)),
                     "errors": int(metrics.get("errors", 0)),
                     "avg_confidence": round(average_confidence, 4),
+                    "avg_ml_score": round(average_ml_score, 4),
+                    "ml_samples": len(ml_scores_seen),
                     "duration_seconds": round(time.monotonic() - started, 2),
                 },
             )
@@ -1602,6 +1609,8 @@ def run(config: VandalismConfig) -> int:
                     "total_analyzed": int(metrics.get("total_analyzed", 0)),
                     "reverts_total": int(metrics.get("reverted", 0)),
                     "errors": int(metrics.get("errors", 0)),
+                    "avg_ml_score": round(average_ml_score, 4),
+                    "ml_samples": len(ml_scores_seen),
                 },
             )
             if intel_conn is not None:
