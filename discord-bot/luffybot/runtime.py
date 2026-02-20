@@ -906,6 +906,42 @@ async def maybe_send_periodic_digests() -> None:
         set_setting("last_monthly_digest_key", monthly_key)
 
 
+async def maybe_run_daily_ops() -> None:
+    today = utc_now().date().isoformat()
+
+    if get_setting("last_daily_bot_logs_date", "") != today:
+        try:
+            await request_script_start(
+                script_key="daily-bot-logs",
+                requester_id=config.OWNER_USER_ID,
+                requester_tag="system",
+                channel_id=get_setting_int("digest_channel_id", config.SUPERVISION_CHANNEL_ID, min_value=1, max_value=10**20),
+                public_request=False,
+                bypass_limits=True,
+                priority=1,
+            )
+            set_setting("last_daily_bot_logs_date", today)
+        except Exception as exc:
+            with contextlib.suppress(Exception):
+                await send_supervision(f"Daily bot logs non lance: {exc}")
+
+    if get_setting("last_daily_config_backup_date", "") != today:
+        try:
+            await request_script_start(
+                script_key="config-backup",
+                requester_id=config.OWNER_USER_ID,
+                requester_tag="system",
+                channel_id=get_setting_int("digest_channel_id", config.SUPERVISION_CHANNEL_ID, min_value=1, max_value=10**20),
+                public_request=False,
+                bypass_limits=True,
+                priority=1,
+            )
+            set_setting("last_daily_config_backup_date", today)
+        except Exception as exc:
+            with contextlib.suppress(Exception):
+                await send_supervision(f"Backup config quotidien non lance: {exc}")
+
+
 def purge_old_files(directory: Path, retention_days: int) -> int:
     if retention_days <= 0 or not directory.exists():
         return 0
@@ -1031,6 +1067,7 @@ async def housekeeping_loop() -> None:
 
             if now_mono - last_digest >= 60.0:
                 await maybe_send_periodic_digests()
+                await maybe_run_daily_ops()
                 last_digest = now_mono
 
             if now_mono - last_cleanup >= 3600.0:
@@ -1055,6 +1092,7 @@ async def housekeeping_loop() -> None:
 
 
 def ensure_background_tasks_started() -> None:
+    sync_control_files()
     if "queue" not in config.BACKGROUND_TASKS or config.BACKGROUND_TASKS["queue"].done():
         config.BACKGROUND_TASKS["queue"] = asyncio.create_task(queue_worker_loop(), name="queue_worker")
 
