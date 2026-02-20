@@ -7,6 +7,8 @@ Scripts Pywikibot pour Vikidia (fr/en) avec architecture modulaire.
 - `muffybot/`: coeur partagé (config, Discord, fichiers, helpers wiki)
 - `muffybot/tasks/`: logique métier des bots
 - `welcome.py`, `homonym.py`, `categinex.py`, `vandalism.py`, `vandalism_patterns.py`: wrappers de compatibilité
+- `daily_bot_logs.py`: publie `bot.logs` (racine) vers le webhook Discord serveur
+- `config_backup.py`: backup quotidien de la config runtime (`logs/config_backups/`)
 - `envikidia/*.py`: wrappers de compatibilité pour le wiki anglais
 - `run_bot.py`: point d'entrée unique optionnel
 
@@ -18,8 +20,10 @@ python3 run_bot.py vandalism-fr
 python3 run_bot.py envikidia-sandboxreset
 python3 run_bot.py vandalism-patterns
 python3 run_bot.py daily-report
+python3 run_bot.py daily-bot-logs
 python3 run_bot.py weekly-report
 python3 run_bot.py monthly-report
+python3 run_bot.py config-backup
 python3 run_bot.py doctor
 ```
 
@@ -39,6 +43,11 @@ python3 run_bot.py doctor
 - `SERVER_ACTIONS_FILE` (optionnel, défaut `logs/server_actions.jsonl`)
 - `SERVER_ACTION_LOG_MAX_MB` (rotation du fichier d'actions serveur)
 - `SERVER_ACTION_LOG_BACKUPS` (nombre de backups de rotation)
+- `MUFFYBOT_LOG_FILE` (défaut `bot.logs`, log central au niveau racine)
+- `MUFFYBOT_LOG_LEVEL` (défaut `INFO`)
+- `MUFFYBOT_LOG_BACKUP_DAYS` (rotation quotidienne, défaut `14`)
+- `MUFFYBOT_ENV` (`prod`, `staging`, `test` ; charge `config.<env>.py` / `.env.<env>` si présents)
+- `MUFFYBOT_ALLOW_DURING_MAINTENANCE` (`1` pour autoriser une exécution pendant maintenance)
 - `MISTRAL_API_KEY` (recommandé pour anti-vandalisme IA)
 - `STATUS_URL` (optionnel, pour `categinex`)
 - `ENABLE_STATUS_PING` (`1` pour activer, sinon désactivé)
@@ -76,6 +85,9 @@ python3 run_bot.py doctor
 - `HUMAN_REVERT_MAX_DIFFS_PER_LANG` (nombre max de diffs extraits par langue à chaque run, défaut `250`)
 - `HUMAN_REVERT_MAX_CORPUS_ENTRIES` (taille max du corpus humain persistant, défaut `50000`)
 - `HUMAN_REVERT_CORPUS_RETENTION_DAYS` (rétention des entrées corpus, défaut `120`)
+- `VAULT_ENABLE` (`1` pour activer le chargement secrets Vault)
+- `VAULT_SECRETS_FILE` (fichier env injecté par Vault Agent, optionnel)
+- `VAULT_ADDR`, `VAULT_TOKEN`, `VAULT_KV_MOUNT`, `VAULT_SECRET_PATH`, `VAULT_TIMEOUT_SECONDS` (accès direct KV v2)
 
 Important:
 - Copier `config.example.py` vers `config.py` et compléter les valeurs.
@@ -83,6 +95,9 @@ Important:
 - Avec `SERVER_LOG_EVERY_ACTION=1`, le canal serveur recevra un très grand volume de logs.
 - Les actions serveur sont aussi historisées localement (`SERVER_ACTIONS_FILE`) avec rotation.
 - En cas de panne temporaire Discord, les notifications sont mises en file d'attente dans `logs/discord_queue.json`.
+- Les logs Python sont centralisés dans `bot.logs` (racine), avec rotation quotidienne.
+- `kill switch`: créer `control/kill.switch` pour bloquer les lancements et arrêter les runs via le panel OP; supprimer le fichier pour réactiver.
+- `maintenance mode`: créer `control/maintenance.mode` pour bloquer les runs non autorisés; supprimer le fichier pour sortir de maintenance.
 - Le script `vandalism_patterns.py` génère `vandalism_common_patterns.txt`, `vandalism_detection_regex.txt`, `vandalism_pattern_validation.json`, `vandalism_rule_drift_report.txt` et `vandalism_false_positive_whitelist.json`.
 - Le script `vandalism.py` alimente aussi `vandalism_intel.sqlite3` (analytics règles et outcomes).
 
