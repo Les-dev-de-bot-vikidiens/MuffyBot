@@ -13,6 +13,7 @@ import requests
 from muffybot.discord import log_server_action, log_server_diagnostic, log_to_discord, send_task_report
 from muffybot.env import get_env, load_dotenv
 from muffybot.files import read_line_set, write_lines
+from muffybot.logging_setup import configure_root_logging
 from muffybot.locking import LockUnavailableError, hold_lock
 from muffybot.paths import ROOT_DIR
 from muffybot.task_control import report_lock_unavailable, save_page_or_dry_run
@@ -67,7 +68,7 @@ def run() -> int:
     started = time.monotonic()
     script_name = "categinex.py"
     load_dotenv()
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s")
+    configure_root_logging(logger_name=script_name)
     prepare_runtime(ROOT_DIR)
     _start_status_ping()
 

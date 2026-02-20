@@ -7,7 +7,9 @@ import time
 
 from muffybot.discord import log_server_action, log_server_diagnostic, send_task_report
 from muffybot.env import load_dotenv
+from muffybot.logging_setup import configure_root_logging
 from muffybot.tasks import categinex, daily_report, doctor, homonym, monthly_report, weekly_report, welcome
+from muffybot.tasks import config_backup, daily_bot_logs
 from muffybot.tasks import envikidia_annual_pages, envikidia_sandboxreset, envikidia_weekly_talk
 from muffybot.tasks.vandalism_patterns import main as vandalism_patterns_main
 from muffybot.tasks.vandalism import main_en as vandalism_en_main
@@ -21,8 +23,10 @@ TASKS = {
     "vandalism-en": vandalism_en_main,
     "vandalism-patterns": vandalism_patterns_main,
     "daily-report": daily_report.main,
+    "daily-bot-logs": daily_bot_logs.main,
     "weekly-report": weekly_report.main,
     "monthly-report": monthly_report.main,
+    "config-backup": config_backup.main,
     "doctor": doctor.main,
     "envikidia-annual": envikidia_annual_pages.main,
     "envikidia-sandboxreset": envikidia_sandboxreset.main,
@@ -36,6 +40,8 @@ def main() -> int:
     args = parser.parse_args()
     task_name = args.task
     started = time.monotonic()
+    load_dotenv()
+    configure_root_logging(logger_name="run_bot.py")
     try:
         exit_code = int(TASKS[task_name]())
     except Exception as exc:
