@@ -1203,7 +1203,33 @@ def run(config: VandalismConfig) -> int:
                         score = min(score, 0.45)
                         matched_patterns.append("constructive_guard")
 
+                    heur_score = score
+                    assist_score = score
+                    if ml_predictor is not None and ml_predictor.enabled:
+                        ml_result = ml_predictor.predict(
+                            lang=config.lang,
+                            title=title,
+                            user=creator,
+                            comment=comment,
+                            added_text=added_text,
+                            removed_text=removed_text,
+                        )
+                        confidence_ml = ml_result.score
+                        ml_label = ml_result.label
+                        ml_top_features = list(ml_result.explanations or [])
+                        ml_model_version = ml_result.model_version
+                        assist_blend = heur_score * (1.0 - ml_assist_weight) + ml_result.score * ml_assist_weight
+                        assist_score = max(heur_score, assist_blend)
+                        if assist_score > heur_score:
+                            ml_assist_applied = 1
+
+                    score = assist_score
                     reason = ", ".join(sorted(set(matched_patterns))) or "No pattern"
+                    if confidence_ml is not None:
+                        reason = (
+                            f"{reason} | ml={ml_label}:{confidence_ml:.3f} "
+                            f"[{', '.join(ml_top_features[:4])}]"
+                        )
                     log_server_action(
                         "score_computed",
                         script_name=config.script_name,
@@ -1211,6 +1237,7 @@ def run(config: VandalismConfig) -> int:
                             "change_id": change_id,
                             "title": title,
                             "score": round(score, 4),
+                            "heuristic_score": round(heur_score, 4),
                             "reason": reason[:200],
                             "instant_threshold": config.instant_revert_threshold,
                             "ai_threshold": config.ai_revert_threshold,
@@ -1219,21 +1246,26 @@ def run(config: VandalismConfig) -> int:
                             "symbol_ratio": float(feature_stats.get("symbol_ratio", 0.0)),
                             "burst_count": int(feature_stats.get("burst_count", 1)),
                             "title_sensitive": int(feature_stats.get("title_sensitive", 0)),
+                            "ml_score": round(float(confidence_ml or 0.0), 4),
+                            "ml_label": ml_label,
+                            "ml_model_version": ml_model_version[:60],
+                            "ml_assist_applied": ml_assist_applied,
                         },
                     )
 
-                    if score >= config.instant_revert_threshold:
+                    # ML assist never triggers auto-revert on its own.
+                    if heur_score >= config.instant_revert_threshold:
                         reverted, revert_status = _revert_target_revision(
                             page=page,
                             target_revid=target_revid,
                             old_revid=old_revid,
                             expected_user=creator,
                             reason=f"Score critique: {reason}",
-                            confidence=score,
+                            confidence=heur_score,
                         )
                         if reverted and revert_status == "reverted":
                             action = "reverted"
-                            confidence = score
+                            confidence = heur_score
                             reverted_this_run += 1
                             log_server_action(
                                 "instant_revert_success",
@@ -1243,19 +1275,19 @@ def run(config: VandalismConfig) -> int:
                                     "change_id": change_id,
                                     "title": title,
                                     "creator": creator,
-                                    "score": round(score, 4),
+                                    "score": round(heur_score, 4),
                                     "reason": reason[:220],
                                 },
                             )
                         elif reverted and revert_status == "reverted_dry_run":
                             action = "dry_run_revert"
-                            confidence = score
+                            confidence = heur_score
                             dry_run_revert_candidates += 1
                             log_server_action(
                                 "instant_revert_dry_run",
                                 script_name=config.script_name,
                                 level="WARNING",
-                                context={"change_id": change_id, "title": title, "creator": creator, "score": round(score, 4), "reason": reason[:220]},
+                                context={"change_id": change_id, "title": title, "creator": creator, "score": round(heur_score, 4), "reason": reason[:220]},
                             )
                         else:
                             LOGGER.debug("Skip revert on %s: %s", title, revert_status)
@@ -1281,6 +1313,8 @@ def run(config: VandalismConfig) -> int:
                                 "ai_confidence": round(ai_confidence, 4),
                                 "ai_category": ai_category,
                                 "ai_reason": ai_reason[:220],
+                                "ml_score": round(float(confidence_ml or 0.0), 4),
+                                "ml_label": ml_label,
                             },
                         )
 
@@ -1346,6 +1380,9 @@ def run(config: VandalismConfig) -> int:
                                     "revid": target_revid,
                                     "old_revid": old_revid,
                                     "timestamp": datetime.utcnow().isoformat(),
+                                    "ml_score": round(float(confidence_ml or 0.0), 4),
+                                    "ml_label": ml_label,
+                                    "ml_top_features": ml_top_features[:6],
                                 }
                             )
                             quarantine = quarantine[-20000:]
@@ -1361,6 +1398,8 @@ def run(config: VandalismConfig) -> int:
                                     "category": ai_category,
                                     "reason": ai_reason[:220],
                                     "quarantine_size": len(quarantine),
+                                    "ml_score": round(float(confidence_ml or 0.0), 4),
+                                    "ml_label": ml_label,
                                 },
                             )
 
