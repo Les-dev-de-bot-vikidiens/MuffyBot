@@ -268,6 +268,7 @@ def run(period: str = "daily") -> int:
                     "window_hours": window_hours,
                     "runs_total": int(totals["runs"]),
                     "reverts_total": int(reverts["total"]),
+                    "avg_ml_score": round(float(reverts.get("avg_ml_score", 0.0)), 4),
                     "queue_depth": queue_depth,
                 },
             )
@@ -281,6 +282,7 @@ def run(period: str = "daily") -> int:
             top_pages = [f"{title}: {count}" for title, count in reverts.get("top_pages", [])]
             top_users = [f"{creator}: {count}" for creator, count in reverts.get("top_users", [])]
             avg_confidence = float(reverts.get("avg_confidence", 0.0))
+            avg_ml_score = float(reverts.get("avg_ml_score", 0.0))
 
             total_errors = int(totals["error"] + totals["failed"])
             level = _report_level(total_errors=total_errors, queue_depth=queue_depth, reverts_total=int(reverts["total"]))
@@ -310,7 +312,8 @@ def run(period: str = "daily") -> int:
                             f"FR reverts: {int(reverts['fr'])}\n"
                             f"EN reverts: {int(reverts['en'])}\n"
                             f"Total: {int(reverts['total'])}\n"
-                            f"Confiance moy: {avg_confidence * 100:.1f}%"
+                            f"Confiance moy: {avg_confidence * 100:.1f}%\n"
+                            f"ML moy: {avg_ml_score * 100:.1f}%"
                         ),
                         "inline": True,
                     },
@@ -360,6 +363,10 @@ def run(period: str = "daily") -> int:
                     "runs_total": int(totals["runs"]),
                     "errors_total": total_errors,
                     "reverts_total": int(reverts["total"]),
+                    "avg_ml_score": round(avg_ml_score, 4),
+                    "ml_bucket_low": int(reverts.get("ml_bucket_low", 0)),
+                    "ml_bucket_mid": int(reverts.get("ml_bucket_mid", 0)),
+                    "ml_bucket_high": int(reverts.get("ml_bucket_high", 0)),
                     "discord_queue_depth": queue_depth,
                     "level": level,
                 },
