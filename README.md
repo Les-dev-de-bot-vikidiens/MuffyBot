@@ -95,6 +95,7 @@ python3 run_bot.py doctor
 - `ML_MIN_TRAIN_SAMPLES` (minimum d'échantillons pour entraîner)
 - `ML_MAX_RC_PER_LANG` (`0` = max possible, avec garde-fou `ML_MAX_RC_HARD_CAP`)
 - `ML_MAX_RC_HARD_CAP` (borne de sécurité quand `ML_MAX_RC_PER_LANG=0`)
+- `ML_COLLECT_RECENTCHANGES` (`0` pour entraîner uniquement sur corpus local/historique)
 - `ML_ASSIST_WEIGHT` (poids du score ML dans le score assisté, défaut `0.25`)
 - `ML_SHADOW_LOG_ONLY` (réservé pour rollout futur)
 - `ML_RICH_CONSOLE` (`1` pour rendu console premium Rich)
