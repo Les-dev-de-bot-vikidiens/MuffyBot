@@ -661,9 +661,30 @@ class OpServiceSelect(discord.ui.Select):
         if parts[0] == "meta":
             action = parts[1] if len(parts) > 1 else ""
 
+            if action == "toggle_kill_switch":
+                enabled = not get_setting_bool("kill_switch_mode", False)
+                set_setting("kill_switch_mode", "1" if enabled else "0")
+                sync_control_files()
+                stopped = 0
+                if enabled:
+                    stopped = await stop_all_scripts("Kill switch active via OP panel")
+                audit(
+                    interaction.user.id,
+                    "panel_op_set_kill_switch",
+                    "kill_switch_mode",
+                    f"{int(enabled)} stopped={stopped}",
+                    guild_id=interaction.guild_id,
+                    channel_id=interaction.channel_id,
+                )
+                await respond_ephemeral(interaction, f"kill_switch_mode={'ON' if enabled else 'OFF'} | stopped={stopped}")
+                await maybe_refresh_public_panel(force=True)
+                await apply_presence()
+                return
+
             if action == "toggle_maintenance":
                 enabled = not get_setting_bool("maintenance_mode", False)
                 set_setting("maintenance_mode", "1" if enabled else "0")
+                sync_control_files()
                 audit(interaction.user.id, "panel_op_set_maintenance", "maintenance_mode", str(int(enabled)), guild_id=interaction.guild_id, channel_id=interaction.channel_id)
                 await respond_ephemeral(interaction, f"maintenance_mode={'ON' if enabled else 'OFF'}")
                 await maybe_refresh_public_panel(force=True)
@@ -706,6 +727,42 @@ class OpServiceSelect(discord.ui.Select):
                 audit(interaction.user.id, "panel_op_digest_now", "digest", "sent", guild_id=interaction.guild_id, channel_id=interaction.channel_id)
                 await respond_ephemeral(interaction, "Digest force envoye (message test supervision).")
                 return
+
+            if action == "daily_bot_logs_now":
+                try:
+                    result = await request_script_start(
+                        script_key="daily-bot-logs",
+                        requester_id=interaction.user.id,
+                        requester_tag=str(interaction.user),
+                        channel_id=interaction.channel_id,
+                        public_request=False,
+                        bypass_limits=True,
+                        priority=1,
+                    )
+                    await respond_ephemeral(interaction, f"daily-bot-logs: {json.dumps(result, ensure_ascii=False)}")
+                    await maybe_refresh_public_panel(force=True)
+                    return
+                except Exception as exc:
+                    await respond_ephemeral(interaction, f"Echec daily-bot-logs: {exc}")
+                    return
+
+            if action == "config_backup_now":
+                try:
+                    result = await request_script_start(
+                        script_key="config-backup",
+                        requester_id=interaction.user.id,
+                        requester_tag=str(interaction.user),
+                        channel_id=interaction.channel_id,
+                        public_request=False,
+                        bypass_limits=True,
+                        priority=1,
+                    )
+                    await respond_ephemeral(interaction, f"config-backup: {json.dumps(result, ensure_ascii=False)}")
+                    await maybe_refresh_public_panel(force=True)
+                    return
+                except Exception as exc:
+                    await respond_ephemeral(interaction, f"Echec config-backup: {exc}")
+                    return
 
             if action == "undo_user_modal":
                 await interaction.response.send_modal(OpUndoModal())
@@ -1314,6 +1371,8 @@ class OpAdvancedSelect(discord.ui.Select):
             discord.SelectOption(label="force process queue", value="force_process_queue"),
             discord.SelectOption(label="trim queue duplicates", value="trim_queue_duplicates"),
             discord.SelectOption(label="clear public cooldowns", value="clear_public_cooldowns"),
+            discord.SelectOption(label="kill switch ON", value="kill_switch_on"),
+            discord.SelectOption(label="kill switch OFF", value="kill_switch_off"),
             discord.SelectOption(label="maintenance ON", value="maintenance_on"),
             discord.SelectOption(label="maintenance OFF", value="maintenance_off"),
             discord.SelectOption(label="public start ON", value="public_start_on"),
@@ -1341,10 +1400,21 @@ class OpAdvancedSelect(discord.ui.Select):
 
         if action == "maintenance_on":
             set_setting("maintenance_mode", "1")
+            sync_control_files()
             await respond_ephemeral(interaction, "maintenance_mode=ON")
         elif action == "maintenance_off":
             set_setting("maintenance_mode", "0")
+            sync_control_files()
             await respond_ephemeral(interaction, "maintenance_mode=OFF")
+        elif action == "kill_switch_on":
+            set_setting("kill_switch_mode", "1")
+            sync_control_files()
+            stopped = await stop_all_scripts("Kill switch active via OP advanced action")
+            await respond_ephemeral(interaction, f"kill_switch_mode=ON | stopped={stopped}")
+        elif action == "kill_switch_off":
+            set_setting("kill_switch_mode", "0")
+            sync_control_files()
+            await respond_ephemeral(interaction, "kill_switch_mode=OFF")
         elif action == "public_start_on":
             set_setting("public_start_enabled", "1")
             await respond_ephemeral(interaction, "public_start_enabled=ON")
