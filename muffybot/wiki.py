@@ -7,11 +7,13 @@ from pathlib import Path
 import pywikibot
 
 from .healthcheck import ensure_started
+from .task_control import ensure_runtime_allowed
 
 
-def prepare_runtime(workdir: Path) -> None:
+def prepare_runtime(workdir: Path, *, script_name: str = "bot") -> None:
     workdir.mkdir(parents=True, exist_ok=True)
     os.chdir(workdir)
+    ensure_runtime_allowed(script_name)
     ensure_started()
 
 

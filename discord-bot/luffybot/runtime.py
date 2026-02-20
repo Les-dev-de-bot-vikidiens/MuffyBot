@@ -83,6 +83,31 @@ def dry_run_enabled() -> bool:
     return get_setting_bool("dry_run_mode", False)
 
 
+def kill_switch_enabled() -> bool:
+    return get_setting_bool("kill_switch_mode", False) or config.KILL_SWITCH_FILE.exists()
+
+
+def maintenance_mode_enabled() -> bool:
+    return get_setting_bool("maintenance_mode", False) or config.MAINTENANCE_FILE.exists()
+
+
+def _write_control_file(path: Path, reason: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(f"reason={reason[:240]}\nts={utc_now_iso()}\n", encoding="utf-8")
+
+
+def sync_control_files() -> None:
+    if kill_switch_enabled():
+        _write_control_file(config.KILL_SWITCH_FILE, "enabled_from_luffybot")
+    else:
+        config.KILL_SWITCH_FILE.unlink(missing_ok=True)
+
+    if maintenance_mode_enabled():
+        _write_control_file(config.MAINTENANCE_FILE, "enabled_from_luffybot")
+    else:
+        config.MAINTENANCE_FILE.unlink(missing_ok=True)
+
+
 def load_token() -> str:
     token = (os.getenv("DISCORD_TOKEN") or "").strip()
     if token:
