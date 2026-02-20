@@ -1015,6 +1015,7 @@ def run(config: VandalismConfig) -> int:
             dry_run_revert_candidates = 0
             quarantined_this_run = 0
             skipped_checkpoint = 0
+            ml_scores_seen: list[float] = []
             burst_window_minutes = max(get_int_env("VANDALISM_BURST_WINDOW_MINUTES", 12), 1)
             burst_threshold = max(get_int_env("VANDALISM_BURST_THRESHOLD", 3), 2)
             burst_score_boost = max(min(get_float_env("VANDALISM_BURST_SCORE_BOOST", 0.08), 0.3), 0.01)
@@ -1056,6 +1057,9 @@ def run(config: VandalismConfig) -> int:
                     "burst_window_minutes": burst_window_minutes,
                     "burst_threshold": burst_threshold,
                     "changes_prefetched": len(changes),
+                    "ml_enabled": int(ml_enabled),
+                    "ml_assist_weight": ml_assist_weight,
+                    "ml_model_available": int(bool(ml_predictor and ml_predictor.enabled)),
                 },
             )
 
@@ -1408,7 +1412,15 @@ def run(config: VandalismConfig) -> int:
                         log_server_action(
                             "change_finalized",
                             script_name=config.script_name,
-                            context={"change_id": change_id, "title": title, "creator": creator, "action": action, "reason": reason[:220]},
+                            context={
+                                "change_id": change_id,
+                                "title": title,
+                                "creator": creator,
+                                "action": action,
+                                "reason": reason[:220],
+                                "ml_score": round(float(confidence_ml or 0.0), 4),
+                                "ml_label": ml_label,
+                            },
                         )
 
                     if action == "reverted":
@@ -1424,6 +1436,11 @@ def run(config: VandalismConfig) -> int:
                             "removed_text": (removed_text or "")[:5000],
                             "matched_patterns": sorted(set(matched_patterns)),
                             "dynamic_rule_labels": sorted({rule.label for rule in dynamic_hit_rules}),
+                            "ml_score": round(float(confidence_ml or 0.0), 4),
+                            "ml_label": ml_label,
+                            "ml_model_version": ml_model_version[:80],
+                            "ml_top_features": ml_top_features[:8],
+                            "ml_assist_applied": ml_assist_applied,
                             "feature_stats": {
                                 "url_count": int(feature_stats.get("url_count", 0)),
                                 "shortener_count": int(feature_stats.get("shortener_count", 0)),
