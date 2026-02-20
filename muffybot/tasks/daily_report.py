@@ -147,12 +147,18 @@ def _aggregate_reverts(since: datetime) -> dict[str, object]:
         "en": 0,
         "total": 0,
         "avg_confidence": 0.0,
+        "avg_ml_score": 0.0,
+        "ml_bucket_low": 0,
+        "ml_bucket_mid": 0,
+        "ml_bucket_high": 0,
         "top_pages": [],
         "top_users": [],
     }
 
     confidence_sum = 0.0
     confidence_count = 0
+    ml_sum = 0.0
+    ml_count = 0
     page_counter: Counter[str] = Counter()
     user_counter: Counter[str] = Counter()
 
@@ -179,9 +185,21 @@ def _aggregate_reverts(since: datetime) -> dict[str, object]:
             if confidence is not None:
                 confidence_sum += confidence
                 confidence_count += 1
+            ml_score = _safe_float(item.get("ml_score"))
+            if ml_score is not None:
+                ml_sum += ml_score
+                ml_count += 1
+                if ml_score < 0.4:
+                    result["ml_bucket_low"] = int(result["ml_bucket_low"]) + 1
+                elif ml_score < 0.75:
+                    result["ml_bucket_mid"] = int(result["ml_bucket_mid"]) + 1
+                else:
+                    result["ml_bucket_high"] = int(result["ml_bucket_high"]) + 1
 
     if confidence_count:
         result["avg_confidence"] = confidence_sum / confidence_count
+    if ml_count:
+        result["avg_ml_score"] = ml_sum / ml_count
     result["top_pages"] = page_counter.most_common(6)
     result["top_users"] = user_counter.most_common(6)
     return result
