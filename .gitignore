@@ -72,3 +72,4 @@ discord-bot/venv_broken_*/
 discord-bot/user-config.py
 discord-bot/user-password.py
 discord-bot/throttle.ctrl
+bot.logs
