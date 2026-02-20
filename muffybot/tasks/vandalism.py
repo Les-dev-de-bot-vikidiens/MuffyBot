@@ -19,10 +19,11 @@ import pywikibot
 import requests
 
 from muffybot.discord import log_server_action, log_server_diagnostic, log_to_discord, send_discord_webhook, send_task_report
-from muffybot.env import get_env, get_float_env, get_int_env, load_dotenv
+from muffybot.env import get_bool_env, get_env, get_float_env, get_int_env, load_dotenv
 from muffybot.files import read_json, write_json
 from muffybot.logging_setup import configure_root_logging
 from muffybot.locking import LockUnavailableError, hold_lock
+from muffybot.ml.predictor import load_predictor
 from muffybot.paths import ENVIKIDIA_DIR, ROOT_DIR
 from muffybot.task_control import dry_run_enabled, report_lock_unavailable, save_page_or_dry_run
 from muffybot.tasks.vandalism_shared import normalize_detection_text
@@ -1018,6 +1019,9 @@ def run(config: VandalismConfig) -> int:
             burst_threshold = max(get_int_env("VANDALISM_BURST_THRESHOLD", 3), 2)
             burst_score_boost = max(min(get_float_env("VANDALISM_BURST_SCORE_BOOST", 0.08), 0.3), 0.01)
             sensitive_title_boost = max(min(get_float_env("VANDALISM_SENSITIVE_TITLE_BOOST", 0.08), 0.3), 0.0)
+            ml_enabled = get_bool_env("ML_ENABLE", True)
+            ml_assist_weight = max(min(get_float_env("ML_ASSIST_WEIGHT", 0.25), 1.0), 0.0)
+            ml_predictor = load_predictor() if ml_enabled else None
             disabled_rule_labels = _load_disabled_rule_labels()
             sensitive_title_tokens = _load_sensitive_title_tokens()
             dynamic_rules = _load_dynamic_regex_rules(disabled_labels=disabled_rule_labels)
@@ -1100,6 +1104,11 @@ def run(config: VandalismConfig) -> int:
 
                 action = "skipped"
                 confidence: float | None = None
+                confidence_ml: float | None = None
+                ml_label = ""
+                ml_top_features: list[str] = []
+                ml_model_version = ""
+                ml_assist_applied = 0
                 reason = "No pattern"
                 score = 0.0
                 matched_patterns: list[str] = []
