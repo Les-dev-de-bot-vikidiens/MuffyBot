@@ -10,6 +10,7 @@ BOT_LOG_FILE = ROOT_DIR / "bot.logs"
 CONFIG_BACKUP_DIR = LOG_DIR / "config_backups"
 CONTROL_DIR = ROOT_DIR / "control"
 KILL_SWITCH_FILE = CONTROL_DIR / "kill.switch"
+MAINTENANCE_FILE = CONTROL_DIR / "maintenance.mode"
 
 
 def ensure_dir(path: Path) -> Path:

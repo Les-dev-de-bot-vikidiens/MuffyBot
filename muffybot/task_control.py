@@ -5,12 +5,33 @@ import os
 import time
 from typing import Any
 
+from muffybot.admin_ops import kill_switch_enabled, maintenance_mode_enabled
 from muffybot.discord import log_server_action, send_task_report
 
 
 def dry_run_enabled() -> bool:
     raw = os.getenv("MUFFYBOT_DRY_RUN", "").strip().lower()
     return raw in {"1", "true", "yes", "on"}
+
+
+class RunPausedError(RuntimeError):
+    def __init__(self, reason: str) -> None:
+        super().__init__(reason)
+        self.reason = reason
+
+
+def ensure_runtime_allowed(script_name: str) -> None:
+    if kill_switch_enabled():
+        raise RunPausedError("Kill switch actif")
+    if maintenance_mode_enabled():
+        allow_during_maintenance = str(os.getenv("MUFFYBOT_ALLOW_DURING_MAINTENANCE", "")).strip().lower() in {
+            "1",
+            "true",
+            "yes",
+            "on",
+        }
+        if not allow_during_maintenance:
+            raise RunPausedError("Mode maintenance actif")
 
 
 def save_page_or_dry_run(
