@@ -656,6 +656,45 @@ def send_discord_webhook(
     return NOTIFIER.send(content=final_content, embed=embed, level=normalized, script_name=script_name, channel=channel)
 
 
+def send_discord_file(
+    *,
+    file_path: Path,
+    content: str | None = None,
+    level: str = "INFO",
+    script_name: str | None = None,
+    channel: str | None = None,
+) -> bool:
+    normalized = (level or "INFO").upper()
+    webhook = NOTIFIER._pick_webhook(level=normalized, script_name=script_name, channel=channel)
+    if not webhook:
+        LOGGER.warning("Discord webhook missing for file upload: %s", script_name or "bot")
+        return False
+
+    path = Path(file_path)
+    if not path.exists() or not path.is_file():
+        LOGGER.warning("Discord file upload path not found: %s", path)
+        return False
+
+    text = _prepend_critical_mention(content, normalized)
+    payload = {"content": _truncate(text, MAX_CONTENT_LENGTH)} if text else {}
+    try:
+        with path.open("rb") as handle:
+            response = requests.post(
+                webhook,
+                data=payload,
+                files={"file": (path.name, handle, "text/plain")},
+                timeout=NOTIFIER.request_timeout,
+            )
+        if 200 <= response.status_code < 300:
+            return True
+        body_preview = _truncate((response.text or "").replace("\n", " "), 300)
+        LOGGER.warning("Discord file upload failed (%s): %s", response.status_code, body_preview)
+        return False
+    except Exception as exc:
+        LOGGER.warning("Discord file upload request error: %s", exc)
+        return False
+
+
 def log_server_diagnostic(
     message: str,
     level: str = "ERROR",
