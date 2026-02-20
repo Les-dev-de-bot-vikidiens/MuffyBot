@@ -10,6 +10,7 @@ from muffybot.env import load_dotenv
 from muffybot.logging_setup import configure_root_logging
 from muffybot.tasks import categinex, daily_report, doctor, homonym, monthly_report, weekly_report, welcome
 from muffybot.tasks import config_backup, daily_bot_logs
+from muffybot.tasks import ml_collect_train, ml_eval
 from muffybot.tasks import envikidia_annual_pages, envikidia_sandboxreset, envikidia_weekly_talk
 from muffybot.tasks.vandalism_patterns import main as vandalism_patterns_main
 from muffybot.tasks.vandalism import main_en as vandalism_en_main
@@ -27,6 +28,8 @@ TASKS = {
     "weekly-report": weekly_report.main,
     "monthly-report": monthly_report.main,
     "config-backup": config_backup.main,
+    "ml-collect-train": ml_collect_train.main,
+    "ml-eval": ml_eval.main,
     "doctor": doctor.main,
     "envikidia-annual": envikidia_annual_pages.main,
     "envikidia-sandboxreset": envikidia_sandboxreset.main,
