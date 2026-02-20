@@ -11,6 +11,7 @@ Scripts Pywikibot pour Vikidia (fr/en) avec architecture modulaire.
 - `config_backup.py`: backup quotidien de la config runtime (`logs/config_backups/`)
 - `ml_collect_train.py`: collecte FR/EN + entraînement ML anti-vandalisme
 - `ml_eval.py`: évaluation offline du modèle ML sauvegardé
+- `ml_harvest.py`: collecte massive incrémentale de modifications en shards parquet
 - `envikidia/*.py`: wrappers de compatibilité pour le wiki anglais
 - `run_bot.py`: point d'entrée unique optionnel
 
@@ -28,6 +29,7 @@ python3 run_bot.py monthly-report
 python3 run_bot.py config-backup
 python3 run_bot.py ml-collect-train
 python3 run_bot.py ml-eval
+python3 run_bot.py ml-harvest
 python3 run_bot.py doctor
 ```
 
@@ -102,6 +104,16 @@ python3 run_bot.py doctor
 - `ML_ASSIST_WEIGHT` (poids du score ML dans le score assisté, défaut `0.25`)
 - `ML_SHADOW_LOG_ONLY` (réservé pour rollout futur)
 - `ML_RICH_CONSOLE` (`1` pour rendu console premium Rich)
+
+Collecte massive locale/PC:
+
+```bash
+python3 ml_harvest.py --langs fr --max-changes 30000 --max-diffs 1500
+python3 ml_collect_train.py
+python3 ml_eval.py
+```
+
+Les shards sont écrits dans `ml_runs/shards/` puis fusionnés automatiquement pendant l'entraînement.
 - `VAULT_ENABLE` (`1` pour activer le chargement secrets Vault)
 - `VAULT_SECRETS_FILE` (fichier env injecté par Vault Agent, optionnel)
 - `VAULT_ADDR`, `VAULT_TOKEN`, `VAULT_KV_MOUNT`, `VAULT_SECRET_PATH`, `VAULT_TIMEOUT_SECONDS` (accès direct KV v2)
