@@ -12,6 +12,7 @@ from typing import Any
 from muffybot.discord import log_server_action, send_discord_webhook, send_task_report
 from muffybot.env import get_env, load_dotenv
 from muffybot.files import read_json
+from muffybot.logging_setup import configure_root_logging
 from muffybot.locking import LockUnavailableError, hold_lock
 from muffybot.paths import ENVIKIDIA_DIR, LOG_DIR, ROOT_DIR
 from muffybot.task_control import report_lock_unavailable
@@ -226,9 +227,9 @@ def _script_name(period: str) -> str:
 def run(period: str = "daily") -> int:
     started = time.monotonic()
     load_dotenv()
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s")
-    prepare_runtime(ROOT_DIR)
     report_script_name = _script_name(period)
+    configure_root_logging(logger_name=report_script_name)
+    prepare_runtime(ROOT_DIR)
     lock_name = f"report-{period.strip().lower()}"
     try:
         with hold_lock(lock_name):

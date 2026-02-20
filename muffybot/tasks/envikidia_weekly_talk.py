@@ -8,6 +8,7 @@ from datetime import datetime
 import pywikibot
 
 from muffybot.discord import log_server_action, log_to_discord, send_task_report
+from muffybot.logging_setup import configure_root_logging
 from muffybot.locking import LockUnavailableError, hold_lock
 from muffybot.paths import ENVIKIDIA_DIR
 from muffybot.task_control import report_lock_unavailable, save_page_or_dry_run
@@ -19,7 +20,7 @@ LOGGER = logging.getLogger(__name__)
 def run() -> int:
     started = time.monotonic()
     script_name = "envikidia/semaine.py"
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s")
+    configure_root_logging(logger_name=script_name)
     prepare_runtime(ENVIKIDIA_DIR)
     try:
         with hold_lock("envikidia-weekly-talk"):
