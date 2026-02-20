@@ -5,6 +5,7 @@ from __future__ import annotations
 import fcntl
 import logging
 import os
+from logging.handlers import TimedRotatingFileHandler
 from typing import TextIO
 
 from . import config
@@ -14,7 +15,28 @@ from .storage import init_db
 
 
 def configure_logging() -> None:
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s [%(name)s] %(message)s")
+    root = logging.getLogger()
+    root.setLevel(logging.INFO)
+    formatter = logging.Formatter("%(asctime)s %(levelname)s [%(name)s] %(message)s")
+
+    if not any(isinstance(handler, logging.StreamHandler) for handler in root.handlers):
+        stream = logging.StreamHandler()
+        stream.setFormatter(formatter)
+        root.addHandler(stream)
+
+    log_path = config.PYWIKIBOT_DIR / "bot.logs"
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    if not any(isinstance(handler, TimedRotatingFileHandler) and handler.baseFilename == str(log_path) for handler in root.handlers):
+        file_handler = TimedRotatingFileHandler(
+            filename=str(log_path),
+            when="midnight",
+            interval=1,
+            backupCount=14,
+            encoding="utf-8",
+            utc=True,
+        )
+        file_handler.setFormatter(formatter)
+        root.addHandler(file_handler)
 
 
 def acquire_instance_lock() -> TextIO:
