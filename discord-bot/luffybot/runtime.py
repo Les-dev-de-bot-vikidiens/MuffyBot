@@ -469,6 +469,8 @@ def startup_backpressure_reason(script_key: str) -> str | None:
 
 async def process_queue(max_launches: int = 8) -> list[tuple[config.QueuedScript, int, int]]:
     launched: list[tuple[config.QueuedScript, int, int]] = []
+    if kill_switch_enabled():
+        return launched
 
     for _ in range(max_launches):
         async with config.STATE_LOCK:
@@ -490,6 +492,13 @@ async def process_queue(max_launches: int = 8) -> list[tuple[config.QueuedScript
                 channel_id=item.channel_id,
                 details=f"queue_id={item.queue_id} script={item.script_key} reason={pressure}",
             )
+            continue
+
+        if maintenance_mode_enabled() and not item.bypass_limits:
+            item.not_before_monotonic = asyncio.get_running_loop().time() + 10.0
+            async with config.STATE_LOCK:
+                if item.script_key not in config.RUNNING_SCRIPTS and item.script_key not in queued_script_keys():
+                    config.RUN_QUEUE.append(item)
             continue
 
         try:
@@ -553,6 +562,11 @@ async def request_script_start(
     extra_env: dict[str, str] | None = None,
     target_label: str = "",
 ) -> dict[str, Any]:
+    if kill_switch_enabled():
+        raise RuntimeError("Kill switch actif: lancement bloque")
+    if maintenance_mode_enabled() and public_request and not bypass_limits:
+        raise RuntimeError("Mode maintenance actif: lancement public bloque")
+
     queue_id, position = await enqueue_script(
         script_key=script_key,
         requester_id=requester_id,
@@ -604,6 +618,16 @@ async def stop_script(script_key: str, note: str) -> bool:
 
     server_log(level="warning", event="run_stop_requested", details=f"script={script_key} note={note}")
     return True
+
+
+async def stop_all_scripts(note: str) -> int:
+    async with config.STATE_LOCK:
+        scripts = sorted(config.RUNNING_SCRIPTS.keys())
+    stopped = 0
+    for script in scripts:
+        if await stop_script(script, note=note):
+            stopped += 1
+    return stopped
 
 
 async def run_systemd_action(action: str, service: str) -> tuple[int, str]:
