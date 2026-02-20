@@ -105,6 +105,34 @@ Important:
 
 Voir `CRONTAB.example`.
 
+## Control Files (kill switch / maintenance)
+
+Activer kill switch (arrêt des nouveaux runs):
+
+```bash
+mkdir -p control
+printf "reason=urgence\nts=$(date -u +%FT%TZ)\n" > control/kill.switch
+```
+
+Désactiver kill switch:
+
+```bash
+rm -f control/kill.switch
+```
+
+Activer maintenance:
+
+```bash
+mkdir -p control
+printf "reason=maintenance\nts=$(date -u +%FT%TZ)\n" > control/maintenance.mode
+```
+
+Désactiver maintenance:
+
+```bash
+rm -f control/maintenance.mode
+```
+
 ## Auto-push securise (systemd)
 
 Un auto-push est disponible via `systemd --user`, avec protections anti-erreur/secrets.
