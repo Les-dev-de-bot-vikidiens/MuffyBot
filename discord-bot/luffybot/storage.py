@@ -86,6 +86,7 @@ def init_db() -> None:
 
         defaults = {
             "maintenance_mode": "0",
+            "kill_switch_mode": "0",
             "public_start_enabled": "1",
             "dry_run_mode": "0",
             "max_parallel_runs": "4",
@@ -109,6 +110,8 @@ def init_db() -> None:
             "digest_channel_id": "1427596219676495904",
             "critical_mention_user_id": "1424064908244422668",
             "last_daily_digest_date": "",
+            "last_daily_bot_logs_date": "",
+            "last_daily_config_backup_date": "",
             "last_weekly_digest_key": "",
             "last_monthly_digest_key": "",
             "supervision_verbose": "1",

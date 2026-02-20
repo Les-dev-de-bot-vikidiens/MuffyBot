@@ -21,6 +21,7 @@ import requests
 from muffybot.discord import log_server_action, log_server_diagnostic, log_to_discord, send_discord_webhook, send_task_report
 from muffybot.env import get_env, get_float_env, get_int_env, load_dotenv
 from muffybot.files import read_json, write_json
+from muffybot.logging_setup import configure_root_logging
 from muffybot.locking import LockUnavailableError, hold_lock
 from muffybot.paths import ENVIKIDIA_DIR, ROOT_DIR
 from muffybot.task_control import dry_run_enabled, report_lock_unavailable, save_page_or_dry_run
@@ -975,7 +976,7 @@ def run(config: VandalismConfig) -> int:
     started = time.monotonic()
     health_state = HealthState(script_name=config.script_name, lang=config.lang)
     load_dotenv()
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s")
+    configure_root_logging(logger_name=config.script_name)
     health_server = _start_health_server(config, health_state)
     lock_name = f"vandalism-{config.lang}"
     try:
